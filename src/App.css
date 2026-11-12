@@ -1531,9 +1531,10 @@ main {
 /* O carro atravessa a divisa entre o painel verde e o formulário, como no Figma. */
 .login-carro {
   position: absolute;
-  right: -16%;
+  right: -40%;
   bottom: 3%;
-  width: min(112%, 74vh);
+  width: min(126%, 80vh);
+  max-width: none;
   height: auto;
   filter: drop-shadow(0 24px 28px rgba(0, 0, 0, 0.35));
   pointer-events: none;
