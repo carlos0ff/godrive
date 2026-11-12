@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { EstadoVazio } from '../components/Estados'
 import { CartaoVeiculo } from '../components/CartaoVeiculo'
-import { HeroArte } from '../components/HeroArte'
 import {
   IconeEscudo,
   IconeEtiqueta,
@@ -98,8 +97,14 @@ export function CatalogoPage({ busca, mostrarHero }: Props) {
               </a>
             </div>
 
-            <div className="hero-arte" aria-hidden="true">
-              <HeroArte />
+            <div className="hero-arte">
+              <img
+                className="hero-img"
+                src="/veiculos/PEUA.png"
+                alt="Peugeot 208 azul"
+                width={420}
+                height={227}
+              />
             </div>
           </div>
 
