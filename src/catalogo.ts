@@ -1,6 +1,7 @@
-import type { Locacao, Veiculo } from '../types'
+import type { Locacao, Veiculo } from './types'
 
-export const VEICULOS_INICIAIS: Veiculo[] = [
+/* Catálogo fixo exibido pelo frontend. Nada é salvo: o app não tem backend. */
+export const VEICULOS: Veiculo[] = [
   { id: 'v1', marca: 'Hyundai', modelo: 'HB20S', ano: 2023, categoria: 'Sedã', placa: 'ABC-1D23', cor: 'Prata', combustivel: 'Flex', lugares: 5, quilometragem: 45000, precoDiaria: 102.43, disponivel: true, imagemUrl: '/veiculos/HB2C.png' },
   { id: 'v2', marca: 'Fiat', modelo: 'Argo', ano: 2022, categoria: 'Hatch', placa: 'DEF-2E34', cor: 'Prata', combustivel: 'Flex', lugares: 5, quilometragem: 32000, precoDiaria: 89.9, disponivel: true, imagemUrl: '/veiculos/fiat-argo.png' },
   { id: 'v3', marca: 'Fiat', modelo: 'Pulse', ano: 2024, categoria: 'SUV', placa: 'GHI-3F45', cor: 'Vermelho', combustivel: 'Flex', lugares: 5, quilometragem: 18000, precoDiaria: 149.9, disponivel: true, imagemUrl: '/veiculos/PLSE.png' },
@@ -9,10 +10,10 @@ export const VEICULOS_INICIAIS: Veiculo[] = [
   { id: 'v6', marca: 'Fiat', modelo: 'Toro', ano: 2024, categoria: 'Picape', placa: 'PQR-6I78', cor: 'Grafite', combustivel: 'Diesel', lugares: 5, quilometragem: 34000, precoDiaria: 209.9, disponivel: true, imagemUrl: '/veiculos/TORA.png' },
 ]
 
-export const LOCACOES_INICIAIS: Locacao[] = [
+export const LOCACOES: Locacao[] = [
   {
     id: 'l1',
-    veiculo: VEICULOS_INICIAIS[1],
+    veiculo: VEICULOS[1],
     dataRetirada: '2026-09-02',
     dataDevolucao: '2026-09-05',
     valorTotal: 269.7,

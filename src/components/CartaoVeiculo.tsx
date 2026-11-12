@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import type { Veiculo } from '../types'
-import { formatarMoeda, formatarNumero } from '../utils/formato'
 import { IlustracaoCarro } from './IlustracaoCarro'
 import {
   IconeCombustivel,
@@ -10,6 +9,8 @@ import {
   IconeSeta,
   IconeVelocimetro,
 } from './Icones'
+
+const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 
 interface Props {
   veiculo: Veiculo
@@ -74,7 +75,7 @@ export function CartaoVeiculo({ veiculo, aoReservar }: Props) {
         <div className="veiculo-specs">
           <span>
             <IconeVelocimetro width={13} height={13} />
-            {formatarNumero(veiculo.quilometragem)} km
+            {(veiculo.quilometragem ?? 0).toLocaleString('pt-BR')} km
           </span>
 
           <span>
@@ -91,7 +92,7 @@ export function CartaoVeiculo({ veiculo, aoReservar }: Props) {
         <div className="veiculo-rodape">
           <p className="preco">
             <small>A partir de</small>
-            <strong>{formatarMoeda(veiculo.precoDiaria)}</strong>
+            <strong>{moeda.format(veiculo.precoDiaria)}</strong>
             <span>/ dia</span>
           </p>
 

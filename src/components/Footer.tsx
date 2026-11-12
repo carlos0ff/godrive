@@ -1,5 +1,3 @@
-import { Link } from '../router/Link'
-
 export function Footer() {
   return (
     <footer className="rodape">
@@ -11,8 +9,8 @@ export function Footer() {
         </p>
 
         <nav className="rodape-links" aria-label="Links do rodapé">
-          <Link para="/veiculos">Ver veículos</Link>
-          <Link para="/locacoes">Minhas locações</Link>
+          <a href="#/veiculos">Ver veículos</a>
+          <a href="#/locacoes">Minhas locações</a>
           <a href="#/veiculos">Fale conosco</a>
         </nav>
       </div>

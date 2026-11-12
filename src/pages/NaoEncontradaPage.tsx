@@ -1,5 +1,4 @@
 import { EstadoVazio } from '../components/Estados'
-import { Link } from '../router/Link'
 
 export function NaoEncontradaPage() {
   return (
@@ -8,9 +7,9 @@ export function NaoEncontradaPage() {
         titulo="Página não encontrada"
         descricao="O endereço acessado não existe ou foi movido."
         acao={
-          <Link para="/" className="botao botao-primario">
+          <a href="#/" className="botao botao-primario">
             Ir para o início
-          </Link>
+          </a>
         }
       />
     </section>

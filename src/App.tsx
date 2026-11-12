@@ -1,7 +1,6 @@
-import { Avisos } from './components/Avisos'
+import { useEffect, useState } from 'react'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
-import { RotaProtegida } from './components/RotaProtegida'
 import { CadastroPage } from './pages/CadastroPage'
 import { CatalogoPage } from './pages/CatalogoPage'
 import { LocacoesPage } from './pages/LocacoesPage'
@@ -9,60 +8,67 @@ import { LoginPage } from './pages/LoginPage'
 import { NaoEncontradaPage } from './pages/NaoEncontradaPage'
 import { NovaLocacaoPage } from './pages/NovaLocacaoPage'
 import { NovoVeiculoPage } from './pages/NovoVeiculoPage'
-import { useRota } from './router/rotas'
 import './App.css'
 
-function Conteudo() {
-  const { caminho } = useRota()
+/* Navegação por hash (#/rota?consulta): os links são <a href="#/..."> comuns. */
+function useHash() {
+  const [hash, setHash] = useState(window.location.hash)
 
-  switch (caminho) {
-    case '/':
-    case '/veiculos':
-      return <CatalogoPage />
+  useEffect(() => {
+    function aoMudar() {
+      setHash(window.location.hash)
+      window.scrollTo({ top: 0 })
+    }
 
-    case '/login':
-      return <LoginPage />
+    window.addEventListener('hashchange', aoMudar)
+    return () => window.removeEventListener('hashchange', aoMudar)
+  }, [])
 
-    case '/cadastro':
-      return <CadastroPage />
+  const [caminho, consulta = ''] = hash.replace(/^#/, '').split('?')
 
-    case '/veiculos/novo':
-      return (
-        <RotaProtegida somenteAdmin>
-          <NovoVeiculoPage />
-        </RotaProtegida>
-      )
-
-    case '/locacoes':
-      return (
-        <RotaProtegida>
-          <LocacoesPage />
-        </RotaProtegida>
-      )
-
-    case '/locacoes/nova':
-      return (
-        <RotaProtegida>
-          <NovaLocacaoPage />
-        </RotaProtegida>
-      )
-
-    default:
-      return <NaoEncontradaPage />
+  return {
+    caminho: caminho.replace(/\/+$/, '') || '/',
+    parametros: new URLSearchParams(consulta),
   }
 }
 
 function App() {
+  const { caminho, parametros } = useHash()
+  const busca = parametros.get('busca') ?? ''
+
+  let pagina
+
+  switch (caminho) {
+    case '/':
+    case '/veiculos':
+      pagina = <CatalogoPage busca={busca} mostrarHero={caminho === '/'} />
+      break
+    case '/login':
+      pagina = <LoginPage />
+      break
+    case '/cadastro':
+      pagina = <CadastroPage />
+      break
+    case '/veiculos/novo':
+      pagina = <NovoVeiculoPage />
+      break
+    case '/locacoes':
+      pagina = <LocacoesPage />
+      break
+    case '/locacoes/nova':
+      pagina = <NovaLocacaoPage veiculoInicial={parametros.get('veiculo') ?? ''} />
+      break
+    default:
+      pagina = <NaoEncontradaPage />
+  }
+
   return (
     <>
-      <Header />
-
-      <main id="conteudo">
-        <Conteudo />
+      <Header caminho={caminho} busca={busca} />
+      <main id="conteudo" key={caminho}>
+        {pagina}
       </main>
-
       <Footer />
-      <Avisos />
     </>
   )
 }

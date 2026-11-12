@@ -1418,3 +1418,15 @@ main {
     align-items: flex-start;
   }
 }
+
+.form-sucesso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid #bfe3cc;
+  border-radius: 10px;
+  background: #effaf3;
+  color: #23784a;
+  font-size: 13px;
+}

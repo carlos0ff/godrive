@@ -3,12 +3,9 @@
 Frontend de uma locadora de veículos em **React + TypeScript + Vite**, com CSS próprio
 e sem dependências além de `react`/`react-dom`.
 
-O app é **somente frontend**: não há backend nem chamadas de rede. O catálogo, a sessão
-e as locações vêm de `src/dados/` e o que você cria fica salvo no `localStorage` do
-navegador.
-
-Qualquer e-mail entra (senha com ao menos 4 caracteres); e-mails começando com `admin`
-recebem o papel de administrador e veem o cadastro de veículos.
+O app é **somente frontend**: não há backend, login, chamadas de rede nem dados salvos.
+O catálogo e o exemplo de locação são fixos (`src/catalogo.ts`). Os formulários validam
+os campos e mostram uma confirmação, mas nada é gravado.
 
 ## Como rodar
 
@@ -21,29 +18,25 @@ Outros comandos: `npm run build` (typecheck + build), `npm run preview` e `npm r
 
 ## Páginas
 
-| Rota                | Acesso        | O que faz                                                            |
-| ------------------- | ------------- | -------------------------------------------------------------------- |
-| `#/`                | público       | Herói, benefícios e catálogo de veículos                              |
-| `#/veiculos`        | público       | Catálogo com busca, filtro por categoria, disponibilidade, ordenação e paginação |
-| `#/login`           | público       | Autenticação; redireciona para a página pretendida (`?redir=`)        |
-| `#/cadastro`        | público       | Criação de conta com validação no cliente                             |
-| `#/veiculos/novo`   | **admin**     | Formulário de cadastro de veículo                                     |
-| `#/locacoes`        | autenticado   | Histórico de locações, valores e finalização                          |
-| `#/locacoes/nova`   | autenticado   | Escolha do veículo, datas, valor estimado e registro                  |
+| Rota                | O que faz                                                            |
+| ------------------- | -------------------------------------------------------------------- |
+| `#/`                | Herói, benefícios e catálogo de veículos                              |
+| `#/veiculos`        | Catálogo com busca, filtro por categoria, disponibilidade, ordenação e paginação |
+| `#/login`           | Formulário de login (só validação)                                    |
+| `#/cadastro`        | Formulário de criação de conta (só validação)                         |
+| `#/veiculos/novo`   | Formulário de cadastro de veículo (só validação)                      |
+| `#/locacoes`        | Exemplo de histórico de locações                                      |
+| `#/locacoes/nova`   | Escolha do veículo, datas e valor estimado                            |
 
-O roteamento é por hash (`#/rota`), implementado em `src/router/` — funciona em qualquer
-hospedagem estática, sem configuração de servidor.
-
-Para zerar os dados de demonstração, apague a chave `godrive:dados` do `localStorage`.
+A navegação é por hash (`#/rota`), tratada direto em `src/App.tsx`, e funciona em
+qualquer hospedagem estática.
 
 ## Estrutura
 
 ```
 src/
-  dados/      catálogo de demonstração e operações locais (localStorage)
-  components/ cabeçalho, rodapé, cartão de veículo, avisos, estados, ícones SVG
-  context/    autenticação e mensagens de sucesso/erro
+  App.tsx     navegação por hash e escolha da página
+  catalogo.ts veículos e locação de exemplo (fixos)
+  components/ cabeçalho, rodapé, cartão de veículo, estado vazio, ícones SVG
   pages/      uma página por rota
-  router/     roteador por hash e componente de link
-  utils/      formatação de moeda, data e cálculo de diárias
 ```

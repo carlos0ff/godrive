@@ -1,21 +1,13 @@
 import { useState, type FormEvent } from 'react'
-import { mensagemDeErro } from '../dados'
-import { useAuth } from '../context/auth'
-import { useFeedback } from '../context/feedback'
-import { Link } from '../router/Link'
-import { navegar } from '../router/rotas'
 import { IconeUsuario } from '../components/Icones'
 
 export function CadastroPage() {
-  const { cadastrar } = useAuth()
-  const { sucesso, erro: avisarErro } = useFeedback()
-
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
   const [erro, setErro] = useState<string | null>(null)
-  const [enviando, setEnviando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
 
   function validar(): string | null {
     if (nome.trim().length < 3) return 'Informe seu nome completo.'
@@ -26,34 +18,13 @@ export function CadastroPage() {
     return null
   }
 
-  async function enviar(evento: FormEvent<HTMLFormElement>) {
+  function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
-
-    if (enviando) return
 
     const problema = validar()
 
-    if (problema) {
-      setErro(problema)
-      return
-    }
-
-    setErro(null)
-    setEnviando(true)
-
-    try {
-      const usuario = await cadastrar({ nome: nome.trim(), email: email.trim(), senha })
-
-      sucesso(`Conta criada. Boas-vindas, ${usuario.nome.split(' ')[0]}!`)
-      navegar('/veiculos')
-    } catch (falha) {
-      const texto = mensagemDeErro(falha)
-
-      setErro(texto)
-      avisarErro(texto)
-    } finally {
-      setEnviando(false)
-    }
+    setErro(problema)
+    setEnviado(!problema)
   }
 
   return (
@@ -66,6 +37,12 @@ export function CadastroPage() {
         </header>
 
         <form onSubmit={enviar} noValidate>
+          {enviado && (
+            <p className="form-sucesso" role="status">
+              Dados válidos. Este app é só frontend: nenhuma conta foi criada.
+            </p>
+          )}
+
           {erro && (
             <p className="form-erro" role="alert">
               {erro}
@@ -126,14 +103,14 @@ export function CadastroPage() {
             </label>
           </div>
 
-          <button type="submit" className="botao botao-primario botao-bloco" disabled={enviando}>
+          <button type="submit" className="botao botao-primario botao-bloco">
             <IconeUsuario width={16} height={16} />
-            {enviando ? 'Criando conta…' : 'Criar conta'}
+            Criar conta
           </button>
         </form>
 
         <p className="form-rodape">
-          Já tem conta? <Link para="/login">Entrar</Link>
+          Já tem conta? <a href="#/login">Entrar</a>
         </p>
       </div>
     </section>

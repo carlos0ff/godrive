@@ -1,102 +1,48 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { listarVeiculos, mensagemDeErro, registrarLocacao } from '../dados'
-import { Carregando, EstadoErro, EstadoVazio } from '../components/Estados'
+import { useState, type FormEvent } from 'react'
+import { EstadoVazio } from '../components/Estados'
 import { IconeAgenda, IconeCarro } from '../components/Icones'
-import { useFeedback } from '../context/feedback'
-import { Link } from '../router/Link'
-import { navegar, useRota } from '../router/rotas'
-import type { Veiculo } from '../types'
-import { contarDiarias, formatarMoeda, hojeISO } from '../utils/formato'
+import { VEICULOS } from '../catalogo'
 
-export function NovaLocacaoPage() {
-  const { parametros } = useRota()
-  const { sucesso, erro: avisarErro } = useFeedback()
+const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 
-  const [veiculos, setVeiculos] = useState<Veiculo[]>([])
-  const [carregando, setCarregando] = useState(true)
-  const [erroCarga, setErroCarga] = useState<string | null>(null)
-  const [tentativa, setTentativa] = useState(0)
-  const [tentativaAnterior, setTentativaAnterior] = useState(0)
+/* Data de hoje no fuso local, no formato AAAA-MM-DD. */
+function hojeISO(): string {
+  const agora = new Date()
+  return new Date(agora.getTime() - agora.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
+}
 
-  const [veiculoId, setVeiculoId] = useState(parametros.get('veiculo') ?? '')
+/* Número de diárias entre duas datas AAAA-MM-DD; 0 se inválido. */
+function contarDiarias(inicio: string, fim: string): number {
+  const dias = Math.round(
+    (new Date(`${fim}T12:00:00`).getTime() - new Date(`${inicio}T12:00:00`).getTime()) / 86_400_000,
+  )
+  return dias > 0 ? dias : 0
+}
+
+const veiculos = VEICULOS.filter((veiculo) => veiculo.disponivel)
+
+export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) {
+  const [veiculoId, setVeiculoId] = useState(veiculoInicial)
   const [retirada, setRetirada] = useState(hojeISO())
   const [devolucao, setDevolucao] = useState('')
   const [erro, setErro] = useState<string | null>(null)
-  const [enviando, setEnviando] = useState(false)
+  const [confirmada, setConfirmada] = useState(false)
 
-  /* Recarregar é estado derivado: ajustado na renderização, não em efeito. */
-  if (tentativa !== tentativaAnterior) {
-    setTentativaAnterior(tentativa)
-    setCarregando(true)
-    setErroCarga(null)
-  }
-
-  useEffect(() => {
-    const controlador = new AbortController()
-
-    listarVeiculos({ disponivel: true, porPagina: 100 }, controlador.signal)
-      .then((dados) => {
-        setVeiculos(dados.itens)
-        setErroCarga(null)
-      })
-      .catch((falha) => {
-        if (!controlador.signal.aborted) setErroCarga(mensagemDeErro(falha))
-      })
-      .finally(() => {
-        if (!controlador.signal.aborted) setCarregando(false)
-      })
-
-    return () => controlador.abort()
-  }, [tentativa])
-
-  const selecionado = useMemo(
-    () => veiculos.find((veiculo) => veiculo.id === veiculoId) ?? null,
-    [veiculos, veiculoId],
-  )
-
+  const selecionado = veiculos.find((veiculo) => veiculo.id === veiculoId) ?? null
   const diarias = retirada && devolucao ? contarDiarias(retirada, devolucao) : 0
   const total = selecionado ? diarias * selecionado.precoDiaria : 0
 
-  async function enviar(evento: FormEvent<HTMLFormElement>) {
+  function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 
-    if (enviando) return
+    let problema: string | null = null
 
-    if (!veiculoId) {
-      setErro('Escolha um veículo.')
-      return
-    }
+    if (!veiculoId) problema = 'Escolha um veículo.'
+    else if (!retirada || !devolucao) problema = 'Informe as datas de retirada e devolução.'
+    else if (diarias < 1) problema = 'A devolução precisa ser pelo menos um dia depois da retirada.'
 
-    if (!retirada || !devolucao) {
-      setErro('Informe as datas de retirada e devolução.')
-      return
-    }
-
-    if (diarias < 1) {
-      setErro('A devolução precisa ser pelo menos um dia depois da retirada.')
-      return
-    }
-
-    setErro(null)
-    setEnviando(true)
-
-    try {
-      await registrarLocacao({
-        veiculoId,
-        dataRetirada: retirada,
-        dataDevolucao: devolucao,
-      })
-
-      sucesso('Locação registrada com sucesso.')
-      navegar('/locacoes')
-    } catch (falha) {
-      const texto = mensagemDeErro(falha)
-
-      setErro(texto)
-      avisarErro(texto)
-    } finally {
-      setEnviando(false)
-    }
+    setErro(problema)
+    setConfirmada(!problema)
   }
 
   return (
@@ -108,26 +54,27 @@ export function NovaLocacaoPage() {
           <p>Escolha o veículo, defina o período e confirme o valor.</p>
         </header>
 
-        {carregando && <Carregando texto="Carregando veículos disponíveis…" />}
-
-        {!carregando && erroCarga && (
-          <EstadoErro mensagem={erroCarga} aoTentarNovamente={() => setTentativa((n) => n + 1)} />
-        )}
-
-        {!carregando && !erroCarga && veiculos.length === 0 && (
+        {veiculos.length === 0 && (
           <EstadoVazio
             titulo="Nenhum veículo disponível"
             descricao="Toda a frota está locada no momento."
             acao={
-              <Link para="/veiculos" className="botao botao-secundario">
+              <a href="#/veiculos" className="botao botao-secundario">
                 Ver catálogo
-              </Link>
+              </a>
             }
           />
         )}
 
-        {!carregando && !erroCarga && veiculos.length > 0 && (
+        {veiculos.length > 0 && (
           <form onSubmit={enviar} noValidate>
+            {confirmada && selecionado && (
+              <p className="form-sucesso" role="status">
+                Reserva de {selecionado.marca} {selecionado.modelo} por {diarias} diária(s):{' '}
+                {moeda.format(total)}. Este app é só frontend: nada foi salvo.
+              </p>
+            )}
+
             {erro && (
               <p className="form-erro" role="alert">
                 {erro}
@@ -147,7 +94,7 @@ export function NovaLocacaoPage() {
                 {veiculos.map((veiculo) => (
                   <option key={veiculo.id} value={veiculo.id}>
                     {veiculo.marca} {veiculo.modelo} · {veiculo.ano} ·{' '}
-                    {formatarMoeda(veiculo.precoDiaria)}/dia
+                    {moeda.format(veiculo.precoDiaria)}/dia
                   </option>
                 ))}
               </select>
@@ -200,7 +147,7 @@ export function NovaLocacaoPage() {
 
                 <div>
                   <dt>Diária</dt>
-                  <dd>{selecionado ? formatarMoeda(selecionado.precoDiaria) : '—'}</dd>
+                  <dd>{selecionado ? moeda.format(selecionado.precoDiaria) : '—'}</dd>
                 </div>
 
                 <div>
@@ -210,26 +157,22 @@ export function NovaLocacaoPage() {
 
                 <div className="resumo-total">
                   <dt>Valor estimado</dt>
-                  <dd>{total > 0 ? formatarMoeda(total) : '—'}</dd>
+                  <dd>{total > 0 ? moeda.format(total) : '—'}</dd>
                 </div>
               </dl>
 
               <p className="resumo-nota">
-                O valor final é confirmado no registro da locação.
+                Valor estimado pelo número de diárias.
               </p>
             </div>
 
             <div className="acoes-form">
-              <button
-                type="button"
-                className="botao botao-secundario"
-                onClick={() => navegar('/veiculos')}
-              >
+              <a href="#/veiculos" className="botao botao-secundario">
                 Voltar ao catálogo
-              </button>
+              </a>
 
-              <button type="submit" className="botao botao-primario" disabled={enviando}>
-                {enviando ? 'Registrando…' : 'Confirmar locação'}
+              <button type="submit" className="botao botao-primario">
+                Confirmar locação
               </button>
             </div>
           </form>

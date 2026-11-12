@@ -1,9 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { cadastrarVeiculo, mensagemDeErro } from '../dados'
 import { IconeMais } from '../components/Icones'
-import { useFeedback } from '../context/feedback'
-import { navegar } from '../router/rotas'
-import type { NovoVeiculo } from '../types'
 
 const CATEGORIAS = ['Sedã', 'Hatch', 'SUV', 'Picape', 'Minivan', 'Utilitário']
 const COMBUSTIVEIS = ['Flex', 'Gasolina', 'Etanol', 'Diesel', 'Híbrido', 'Elétrico']
@@ -26,11 +22,9 @@ const INICIAL = {
 type Formulario = typeof INICIAL
 
 export function NovoVeiculoPage() {
-  const { sucesso, erro: avisarErro } = useFeedback()
-
   const [form, setForm] = useState<Formulario>(INICIAL)
   const [erro, setErro] = useState<string | null>(null)
-  const [enviando, setEnviando] = useState(false)
+  const [cadastrado, setCadastrado] = useState<string | null>(null)
 
   function alterar(evento: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const campo = evento.target
@@ -58,50 +52,20 @@ export function NovoVeiculoPage() {
     return null
   }
 
-  async function enviar(evento: FormEvent<HTMLFormElement>) {
+  function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
-
-    if (enviando) return
 
     const problema = validar()
 
+    setErro(problema)
+
     if (problema) {
-      setErro(problema)
+      setCadastrado(null)
       return
     }
 
-    setErro(null)
-    setEnviando(true)
-
-    const dados: NovoVeiculo = {
-      marca: form.marca.trim(),
-      modelo: form.modelo.trim(),
-      ano: Number(form.ano),
-      categoria: form.categoria,
-      placa: form.placa.trim().toUpperCase(),
-      cor: form.cor.trim() || undefined,
-      combustivel: form.combustivel,
-      lugares: Number(form.lugares) || undefined,
-      quilometragem: Number(form.quilometragem) || 0,
-      precoDiaria: Number(form.precoDiaria),
-      imagemUrl: form.imagemUrl.trim() || undefined,
-      disponivel: form.disponivel,
-    }
-
-    try {
-      const criado = await cadastrarVeiculo(dados)
-
-      sucesso(`${criado.marca} ${criado.modelo} cadastrado na frota.`)
-      setForm(INICIAL)
-      navegar('/veiculos')
-    } catch (falha) {
-      const texto = mensagemDeErro(falha)
-
-      setErro(texto)
-      avisarErro(texto)
-    } finally {
-      setEnviando(false)
-    }
+    setCadastrado(`${form.marca.trim()} ${form.modelo.trim()}`)
+    setForm(INICIAL)
   }
 
   return (
@@ -110,10 +74,16 @@ export function NovoVeiculoPage() {
         <header className="form-cabecalho">
           <span className="eyebrow">Administração</span>
           <h1>Cadastrar veículo</h1>
-          <p>O veículo entra na frota e passa a aparecer no catálogo.</p>
+          <p>Preencha os dados do veículo. Este app é só frontend: nada é salvo.</p>
         </header>
 
         <form onSubmit={enviar} noValidate>
+          {cadastrado && (
+            <p className="form-sucesso" role="status">
+              {cadastrado}: dados válidos. Sem backend, o veículo não foi salvo.
+            </p>
+          )}
+
           {erro && (
             <p className="form-erro" role="alert">
               {erro}
@@ -286,17 +256,13 @@ export function NovoVeiculoPage() {
           </label>
 
           <div className="acoes-form">
-            <button
-              type="button"
-              className="botao botao-secundario"
-              onClick={() => navegar('/veiculos')}
-            >
+            <a href="#/veiculos" className="botao botao-secundario">
               Cancelar
-            </button>
+            </a>
 
-            <button type="submit" className="botao botao-primario" disabled={enviando}>
+            <button type="submit" className="botao botao-primario">
               <IconeMais width={16} height={16} />
-              {enviando ? 'Salvando…' : 'Cadastrar veículo'}
+              Cadastrar veículo
             </button>
           </div>
         </form>

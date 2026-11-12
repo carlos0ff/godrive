@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { listarVeiculos, mensagemDeErro } from '../dados'
-import { Carregando, EstadoErro, EstadoVazio } from '../components/Estados'
+import { useMemo, useState } from 'react'
+import { EstadoVazio } from '../components/Estados'
 import { CartaoVeiculo } from '../components/CartaoVeiculo'
 import { HeroArte } from '../components/HeroArte'
 import {
@@ -9,16 +8,10 @@ import {
   IconeSetaBaixo,
   IconeSuporte,
 } from '../components/Icones'
-import { useAuth } from '../context/auth'
-import { navegar, useRota } from '../router/rotas'
-import type { Pagina, Veiculo } from '../types'
+import { VEICULOS } from '../catalogo'
+import type { Veiculo } from '../types'
 
 const POR_PAGINA = 6
-
-type Consulta =
-  | { estado: 'carregando' }
-  | { estado: 'pronto'; dados: Pagina<Veiculo> }
-  | { estado: 'erro'; mensagem: string }
 
 const ORDENACOES = [
   { valor: 'recomendados', rotulo: 'Ordenar: recomendados' },
@@ -27,96 +20,58 @@ const ORDENACOES = [
   { valor: 'mais-novos', rotulo: 'Ordenar: mais novos' },
 ]
 
-export function CatalogoPage() {
-  const { autenticado } = useAuth()
-  const { caminho, parametros } = useRota()
+const COMPARAR: Record<string, (a: Veiculo, b: Veiculo) => number> = {
+  'menor-preco': (a, b) => a.precoDiaria - b.precoDiaria,
+  'maior-preco': (a, b) => b.precoDiaria - a.precoDiaria,
+  'mais-novos': (a, b) => b.ano - a.ano,
+}
 
-  const busca = parametros.get('busca') ?? ''
+const CATEGORIAS = [...new Set(VEICULOS.map((v) => v.categoria))].sort((a, b) =>
+  a.localeCompare(b, 'pt-BR'),
+)
 
+function reservar(veiculo: Veiculo) {
+  window.location.hash = `/locacoes/nova?veiculo=${encodeURIComponent(veiculo.id)}`
+}
+
+interface Props {
+  busca: string
+  mostrarHero: boolean
+}
+
+export function CatalogoPage({ busca, mostrarHero }: Props) {
   const [categoria, setCategoria] = useState('')
   const [somenteDisponiveis, setSomenteDisponiveis] = useState(true)
   const [ordenar, setOrdenar] = useState('recomendados')
   const [pagina, setPagina] = useState(1)
-  const [recarregar, setRecarregar] = useState(0)
-  const [consulta, setConsulta] = useState<Consulta>({ estado: 'carregando' })
-  const [categoriasVistas, setCategoriasVistas] = useState<string[]>([])
 
-  /* Assinatura dos filtros: muda a cada novo critério de busca. */
+  /* Trocar um filtro volta para a primeira página. */
   const filtros = `${busca}|${categoria}|${somenteDisponiveis}|${ordenar}`
   const [filtrosAnteriores, setFiltrosAnteriores] = useState(filtros)
-  const [chaveAnterior, setChaveAnterior] = useState(`${filtros}|${pagina}|${recarregar}`)
 
-  /* Estado derivado ajustado na renderização: trocar de filtro volta para a
-     primeira página e recoloca a lista em carregamento, sem efeito em cascata. */
   if (filtros !== filtrosAnteriores) {
     setFiltrosAnteriores(filtros)
     setPagina(1)
   }
 
-  const chave = `${filtros}|${pagina}|${recarregar}`
+  const filtrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase()
 
-  if (chave !== chaveAnterior) {
-    setChaveAnterior(chave)
-    setConsulta({ estado: 'carregando' })
-  }
+    const lista = VEICULOS.filter((v) => {
+      if (termo && !`${v.marca} ${v.modelo}`.toLowerCase().includes(termo)) return false
+      if (categoria && v.categoria !== categoria) return false
+      if (somenteDisponiveis && !v.disponivel) return false
+      return true
+    })
 
-  useEffect(() => {
-    const controlador = new AbortController()
+    const comparar = COMPARAR[ordenar]
 
-    listarVeiculos(
-      {
-        busca: busca || undefined,
-        categoria: categoria || undefined,
-        disponivel: somenteDisponiveis ? true : undefined,
-        ordenar,
-        pagina,
-        porPagina: POR_PAGINA,
-      },
-      controlador.signal,
-    )
-      .then((dados) => {
-        setConsulta({ estado: 'pronto', dados })
+    return comparar ? [...lista].sort(comparar) : lista
+  }, [busca, categoria, somenteDisponiveis, ordenar])
 
-        setCategoriasVistas((atuais) => {
-          const unicas = new Set([...atuais, ...dados.itens.map((v) => v.categoria)])
-          return [...unicas].filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'))
-        })
-      })
-      .catch((falha) => {
-        if (controlador.signal.aborted) return
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA))
+  const itens = filtrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
 
-        setConsulta({ estado: 'erro', mensagem: mensagemDeErro(falha) })
-      })
-
-    return () => controlador.abort()
-  }, [busca, categoria, somenteDisponiveis, ordenar, pagina, recarregar])
-
-  const resultado = consulta.estado === 'pronto' ? consulta.dados : null
-
-  const totalPaginas = useMemo(() => {
-    if (!resultado) return 1
-
-    return Math.max(1, Math.ceil(resultado.total / (resultado.porPagina || POR_PAGINA)))
-  }, [resultado])
-
-  const reservar = useCallback(
-    (veiculo: Veiculo) => {
-      const destino = `/locacoes/nova?veiculo=${encodeURIComponent(veiculo.id)}`
-
-      if (!autenticado) {
-        navegar(`/login?redir=${encodeURIComponent(destino)}`)
-        return
-      }
-
-      navegar(destino)
-    },
-    [autenticado],
-  )
-
-  const itens = resultado?.itens ?? []
-  const carregando = consulta.estado === 'carregando'
-  const erro = consulta.estado === 'erro' ? consulta.mensagem : null
-  const mostrarHero = caminho === '/'
 
   return (
     <>
@@ -212,7 +167,7 @@ export function CatalogoPage() {
               Todos
             </button>
 
-            {categoriasVistas.map((nome) => (
+            {CATEGORIAS.map((nome) => (
               <button
                 key={nome}
                 type="button"
@@ -228,7 +183,7 @@ export function CatalogoPage() {
 
           <div className="controles">
             <span className="contagem">
-              <strong>{resultado?.total ?? 0}</strong> veículos
+              <strong>{filtrados.length}</strong> veículos
             </span>
 
             <label className="alternador" htmlFor="filtro-disponiveis">
@@ -260,20 +215,14 @@ export function CatalogoPage() {
           </div>
         </div>
 
-        {carregando && <Carregando texto="Buscando veículos…" />}
-
-        {!carregando && erro && (
-          <EstadoErro mensagem={erro} aoTentarNovamente={() => setRecarregar((n) => n + 1)} />
-        )}
-
-        {!carregando && !erro && itens.length === 0 && (
+        {itens.length === 0 && (
           <EstadoVazio
             titulo="Nenhum veículo encontrado"
             descricao="Ajuste a busca ou os filtros para ver outras opções."
           />
         )}
 
-        {!carregando && !erro && itens.length > 0 && (
+        {itens.length > 0 && (
           <div className="grade-veiculos">
             {itens.map((veiculo) => (
               <CartaoVeiculo key={veiculo.id} veiculo={veiculo} aoReservar={reservar} />
@@ -281,7 +230,7 @@ export function CatalogoPage() {
           </div>
         )}
 
-        {!carregando && !erro && totalPaginas > 1 && (
+        {totalPaginas > 1 && (
           <nav className="paginacao" aria-label="Paginação">
             <button
               type="button"
