@@ -62,6 +62,9 @@ function App() {
       pagina = <NaoEncontradaPage />
   }
 
+  /* O login ocupa a tela inteira, sem cabeçalho nem rodapé. */
+  if (caminho === '/login') return <LoginPage />
+
   return (
     <>
       <Header caminho={caminho} busca={busca} />
