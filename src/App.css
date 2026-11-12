@@ -430,7 +430,7 @@ main {
 }
 
 .hero-arte {
-  flex: 0 1 580px;
+  flex: 0 1 500px;
   min-width: 0;
   display: flex;
   justify-content: flex-end;
@@ -438,7 +438,7 @@ main {
 
 .hero-img {
   width: 100%;
-  max-width: 580px;
+  max-width: 500px;
   height: auto;
 }
 
