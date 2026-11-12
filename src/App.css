@@ -1430,3 +1430,44 @@ main {
   color: #23784a;
   font-size: 13px;
 }
+
+.campo-imagem {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.campo-imagem legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.campo-imagem input[type='file'] {
+  height: auto;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.campo-dica {
+  font-size: 12px;
+  color: #69778c;
+}
+
+.campo-erro {
+  font-size: 12px;
+  color: #a33a3a;
+}
+
+.imagem-previa {
+  width: 100%;
+  max-width: 280px;
+  max-height: 180px;
+  object-fit: contain;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f7f9fc;
+}

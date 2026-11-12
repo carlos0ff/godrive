@@ -20,11 +20,26 @@ const INICIAL = {
 }
 
 type Formulario = typeof INICIAL
+type OrigemImagem = 'url' | 'upload'
+
+const TAMANHO_MAXIMO = 5 * 1024 * 1024
 
 export function NovoVeiculoPage() {
   const [form, setForm] = useState<Formulario>(INICIAL)
   const [erro, setErro] = useState<string | null>(null)
   const [cadastrado, setCadastrado] = useState<string | null>(null)
+  const [origemImagem, setOrigemImagem] = useState<OrigemImagem>('url')
+  const [arquivo, setArquivo] = useState<{ nome: string; dados: string } | null>(null)
+  const [erroArquivo, setErroArquivo] = useState<string | null>(null)
+  const [chaveArquivo, setChaveArquivo] = useState(0)
+
+  const urlDigitada = form.imagemUrl.trim()
+  const previa =
+    origemImagem === 'url'
+      ? /^https?:\/\/\S+$/i.test(urlDigitada)
+        ? urlDigitada
+        : ''
+      : (arquivo?.dados ?? '')
 
   function alterar(evento: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const campo = evento.target
@@ -34,6 +49,35 @@ export function NovoVeiculoPage() {
         : campo.value
 
     setForm((atual) => ({ ...atual, [campo.name]: valor }))
+  }
+
+  /* Lê a imagem escolhida no navegador para mostrar a prévia; nada é enviado. */
+  function escolherArquivo(evento: ChangeEvent<HTMLInputElement>) {
+    const escolhido = evento.target.files?.[0]
+
+    setErroArquivo(null)
+    setArquivo(null)
+
+    if (!escolhido) return
+
+    if (!escolhido.type.startsWith('image/')) {
+      setErroArquivo('Escolha um arquivo de imagem (PNG, JPG, WEBP…).')
+      return
+    }
+
+    if (escolhido.size > TAMANHO_MAXIMO) {
+      setErroArquivo('A imagem precisa ter no máximo 5 MB.')
+      return
+    }
+
+    const leitor = new FileReader()
+
+    leitor.onload = () => {
+      if (typeof leitor.result === 'string')
+        setArquivo({ nome: escolhido.name, dados: leitor.result })
+    }
+    leitor.onerror = () => setErroArquivo('Não foi possível ler a imagem.')
+    leitor.readAsDataURL(escolhido)
   }
 
   function validar(): string | null {
@@ -48,6 +92,13 @@ export function NovoVeiculoPage() {
       return 'Informe um ano válido.'
 
     if (!(Number(form.precoDiaria) > 0)) return 'Informe o valor da diária.'
+
+    const url = form.imagemUrl.trim()
+
+    if (origemImagem === 'url' && url && !/^https?:\/\/\S+$/i.test(url))
+      return 'Informe uma URL de imagem começando com http:// ou https://.'
+
+    if (origemImagem === 'upload' && erroArquivo) return erroArquivo
 
     return null
   }
@@ -66,6 +117,8 @@ export function NovoVeiculoPage() {
 
     setCadastrado(`${form.marca.trim()} ${form.modelo.trim()}`)
     setForm(INICIAL)
+    setArquivo(null)
+    setChaveArquivo((n) => n + 1)
   }
 
   return (
@@ -232,17 +285,66 @@ export function NovoVeiculoPage() {
             </label>
           </div>
 
-          <label className="campo" htmlFor="veiculo-imagem">
-            <span>URL da imagem (opcional)</span>
-            <input
-              id="veiculo-imagem"
-              name="imagemUrl"
-              type="url"
-              value={form.imagemUrl}
-              onChange={alterar}
-              placeholder="https://…/corolla.png"
-            />
-          </label>
+          <fieldset className="campo campo-imagem">
+            <legend>Imagem do veículo (opcional)</legend>
+
+            <div className="abas" role="radiogroup" aria-label="Como enviar a imagem">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={origemImagem === 'url'}
+                className={`aba${origemImagem === 'url' ? ' ativa' : ''}`}
+                onClick={() => setOrigemImagem('url')}
+              >
+                URL da imagem
+              </button>
+
+              <button
+                type="button"
+                role="radio"
+                aria-checked={origemImagem === 'upload'}
+                className={`aba${origemImagem === 'upload' ? ' ativa' : ''}`}
+                onClick={() => setOrigemImagem('upload')}
+              >
+                Upload da imagem
+              </button>
+            </div>
+
+            {origemImagem === 'url' ? (
+              <input
+                id="veiculo-imagem"
+                name="imagemUrl"
+                type="url"
+                aria-label="URL da imagem"
+                value={form.imagemUrl}
+                onChange={alterar}
+                placeholder="https://…/corolla.png"
+              />
+            ) : (
+              <>
+                <input
+                  key={chaveArquivo}
+                  id="veiculo-arquivo"
+                  type="file"
+                  accept="image/*"
+                  aria-label="Arquivo da imagem"
+                  onChange={escolherArquivo}
+                />
+                <small className="campo-dica">
+                  {arquivo ? arquivo.nome : 'PNG, JPG ou WEBP, até 5 MB.'}
+                </small>
+                {erroArquivo && (
+                  <small className="campo-erro" role="alert">
+                    {erroArquivo}
+                  </small>
+                )}
+              </>
+            )}
+
+            {previa && (
+              <img className="imagem-previa" src={previa} alt="Prévia da imagem do veículo" />
+            )}
+          </fieldset>
 
           <label className="alternador" htmlFor="veiculo-disponivel">
             <input
