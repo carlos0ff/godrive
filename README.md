@@ -22,8 +22,10 @@ Outros comandos: `npm run build` (typecheck + build), `npm run preview` e `npm r
 | ------------------- | -------------------------------------------------------------------- |
 | `#/`                | Herói, benefícios e catálogo de veículos                              |
 | `#/veiculos`        | Catálogo com busca, filtro por categoria, disponibilidade, ordenação e paginação |
-| `#/login`           | Formulário de login (só validação)                                    |
-| `#/cadastro`        | Formulário de criação de conta (só validação)                         |
+| `#/login`           | Login em tela cheia (só validação)                                    |
+| `#/cadastro`        | Criação de conta; leva à confirmação do e-mail                        |
+| `#/recuperar`       | Recuperação de senha; envia para o código de verificação              |
+| `#/confirmar-email` | Código de 6 dígitos (e nova senha, quando vem da recuperação)         |
 | `#/veiculos/novo`   | Formulário de cadastro de veículo (só validação)                      |
 | `#/locacoes`        | Exemplo de histórico de locações                                      |
 | `#/locacoes/nova`   | Escolha do veículo, datas e valor estimado                            |

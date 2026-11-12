@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import logoGoDrive from '../assets/godrive.png'
+import logoGoDrive from '../assets/godrive-escuro.png'
 import { IconeBusca, IconeCarro, IconeEntrar, IconeSeta } from './Icones'
 
 interface Props {
@@ -48,8 +48,8 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
               <img
                 src={logoGoDrive}
                 alt="goDrive"
-                width={190}
-                height={40}
+                width={156}
+                height={34}
                 onError={() => setLogoFalhou(true)}
               />
             </span>

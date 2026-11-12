@@ -1,19 +1,21 @@
 import { useState, type FormEvent } from 'react'
-import { IconeUsuario } from '../components/Icones'
+import { IconeCadeado, IconeEmail, IconeSeta, IconeUsuario } from '../components/Icones'
+import { CampoAuth, LayoutAuth } from '../components/LayoutAuth'
 
 export function CadastroPage() {
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
+  const [aceite, setAceite] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [enviado, setEnviado] = useState(false)
 
   function validar(): string | null {
     if (nome.trim().length < 3) return 'Informe seu nome completo.'
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Informe um e-mail válido.'
     if (senha.length < 6) return 'A senha precisa ter ao menos 6 caracteres.'
     if (senha !== confirmacao) return 'As senhas não conferem.'
+    if (!aceite) return 'Aceite os Termos de Uso para continuar.'
 
     return null
   }
@@ -24,95 +26,96 @@ export function CadastroPage() {
     const problema = validar()
 
     setErro(problema)
-    setEnviado(!problema)
+
+    if (!problema) {
+      window.location.hash = `/confirmar-email?email=${encodeURIComponent(email.trim())}`
+    }
   }
 
   return (
-    <section className="container pagina-estreita">
-      <div className="cartao-form">
-        <header className="form-cabecalho">
-          <span className="eyebrow">Novo por aqui</span>
-          <h1>Criar conta</h1>
-          <p>Leva menos de um minuto e já libera as reservas.</p>
-        </header>
+    <LayoutAuth
+      eyebrow="Novo por aqui?"
+      titulo="Crie sua conta"
+      descricao="Leva menos de um minuto e já libera as reservas."
+      citacao="“A estrada é sua. A gente cuida do resto.”"
+      subtitulo="Cadastre-se e escolha entre hatches, sedãs, SUVs e picapes."
+      carro={{ src: '/veiculos/TORA.png', alt: 'Fiat Toro grafite' }}
+    >
+      <form className="login-form" onSubmit={enviar} noValidate>
+        {erro && (
+          <p className="form-erro" role="alert">
+            {erro}
+          </p>
+        )}
 
-        <form onSubmit={enviar} noValidate>
-          {enviado && (
-            <p className="form-sucesso" role="status">
-              Dados válidos. Este app é só frontend: nenhuma conta foi criada.
-            </p>
-          )}
+        <CampoAuth
+          id="cadastro-nome"
+          rotulo="Nome completo"
+          icone={<IconeUsuario />}
+          autoComplete="name"
+          placeholder="Como devemos chamar você"
+          value={nome}
+          onChange={(evento) => setNome(evento.target.value)}
+        />
 
-          {erro && (
-            <p className="form-erro" role="alert">
-              {erro}
-            </p>
-          )}
+        <CampoAuth
+          id="cadastro-email"
+          rotulo="E-mail"
+          icone={<IconeEmail />}
+          type="email"
+          autoComplete="email"
+          placeholder="seu@email.com"
+          value={email}
+          onChange={(evento) => setEmail(evento.target.value)}
+        />
 
-          <label className="campo" htmlFor="cadastro-nome">
-            <span>Nome completo</span>
+        <div className="login-linha">
+          <CampoAuth
+            id="cadastro-senha"
+            rotulo="Senha"
+            icone={<IconeCadeado />}
+            type="password"
+            autoComplete="new-password"
+            placeholder="Mínimo de 6"
+            value={senha}
+            onChange={(evento) => setSenha(evento.target.value)}
+          />
+
+          <CampoAuth
+            id="cadastro-confirmacao"
+            rotulo="Confirmar senha"
+            icone={<IconeCadeado />}
+            type="password"
+            autoComplete="new-password"
+            placeholder="Repita a senha"
+            value={confirmacao}
+            onChange={(evento) => setConfirmacao(evento.target.value)}
+          />
+        </div>
+
+        <div className="login-opcoes">
+          <label htmlFor="cadastro-aceite">
             <input
-              id="cadastro-nome"
-              type="text"
-              autoComplete="name"
-              placeholder="Como devemos chamar você"
-              value={nome}
-              onChange={(evento) => setNome(evento.target.value)}
-              required
+              id="cadastro-aceite"
+              type="checkbox"
+              checked={aceite}
+              onChange={(evento) => setAceite(evento.target.checked)}
             />
+            <span>
+              Li e aceito os <a href="#/cadastro">Termos de Uso</a>
+            </span>
           </label>
+        </div>
 
-          <label className="campo" htmlFor="cadastro-email">
-            <span>E-mail</span>
-            <input
-              id="cadastro-email"
-              type="email"
-              autoComplete="email"
-              placeholder="voce@email.com"
-              value={email}
-              onChange={(evento) => setEmail(evento.target.value)}
-              required
-            />
-          </label>
+        <button type="submit" className="login-entrar">
+          Criar conta
+          <IconeSeta width={16} height={16} />
+        </button>
+      </form>
 
-          <div className="campo-linha">
-            <label className="campo" htmlFor="cadastro-senha">
-              <span>Senha</span>
-              <input
-                id="cadastro-senha"
-                type="password"
-                autoComplete="new-password"
-                placeholder="Mínimo de 6 caracteres"
-                value={senha}
-                onChange={(evento) => setSenha(evento.target.value)}
-                required
-              />
-            </label>
-
-            <label className="campo" htmlFor="cadastro-confirmacao">
-              <span>Confirmar senha</span>
-              <input
-                id="cadastro-confirmacao"
-                type="password"
-                autoComplete="new-password"
-                placeholder="Repita a senha"
-                value={confirmacao}
-                onChange={(evento) => setConfirmacao(evento.target.value)}
-                required
-              />
-            </label>
-          </div>
-
-          <button type="submit" className="botao botao-primario botao-bloco">
-            <IconeUsuario width={16} height={16} />
-            Criar conta
-          </button>
-        </form>
-
-        <p className="form-rodape">
-          Já tem conta? <a href="#/login">Entrar</a>
-        </p>
-      </div>
-    </section>
+      <p className="login-cadastro">
+        Já tem conta? <a href="#/login">Entrar</a>
+      </p>
+    </LayoutAuth>
   )
 }

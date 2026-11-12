@@ -114,13 +114,10 @@
   display: inline-flex;
   align-items: center;
   height: 44px;
-  padding: 0 14px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #0c6b3b, #07421f);
 }
 
 .brand-logo img {
-  height: 26px;
+  height: 34px;
   width: auto;
   max-width: 170px;
   object-fit: contain;
@@ -1331,7 +1328,10 @@ main {
 
   .brand-logo {
     height: 38px;
-    padding: 0 10px;
+  }
+
+  .brand-logo img {
+    height: 28px;
   }
 
   .brand-logo img {
@@ -1476,7 +1476,7 @@ main {
 
 .login {
   display: grid;
-  grid-template-columns: minmax(360px, 39fr) 61fr;
+  grid-template-columns: minmax(320px, 32fr) 68fr;
   min-height: 100vh;
   background: #f6f8f3;
 }
@@ -1500,14 +1500,14 @@ main {
 }
 
 .login-citacao {
-  margin-top: clamp(32px, 9vh, 96px);
+  margin-top: clamp(24px, 7vh, 88px);
 }
 
 .login-citacao p {
   max-width: 14ch;
   margin: 0;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(26px, 2.6vw, 38px);
+  font-size: clamp(24px, 2.4vw, 36px);
   font-style: italic;
   font-weight: 700;
   line-height: 1.15;
@@ -1531,9 +1531,9 @@ main {
 /* O carro atravessa a divisa entre o painel verde e o formulário, como no Figma. */
 .login-carro {
   position: absolute;
-  left: 26%;
-  bottom: 6%;
-  width: min(96%, 70vh);
+  right: -16%;
+  bottom: 3%;
+  width: min(112%, 74vh);
   height: auto;
   filter: drop-shadow(0 24px 28px rgba(0, 0, 0, 0.35));
   pointer-events: none;
@@ -1678,12 +1678,17 @@ main {
   cursor: pointer;
 }
 
+.login-link {
+  text-decoration: none;
+}
+
 .login-link:hover {
   text-decoration: underline;
 }
 
 .login-entrar {
   display: flex;
+  text-decoration: none;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -1745,5 +1750,100 @@ main {
   .login-voltar {
     top: 20px;
     right: 16px;
+  }
+}
+
+.login-linha {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.login-opcoes label a {
+  font-weight: 600;
+  color: var(--green-dark);
+}
+
+.login-cabecalho strong {
+  color: var(--navy);
+}
+
+.codigo {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.codigo legend {
+  margin-bottom: 10px;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+
+.codigo-digitos {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.codigo-digitos input {
+  width: 100%;
+  height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--navy);
+  outline: 0;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.codigo-digitos input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(0, 149, 75, 0.12);
+}
+
+.codigo-dica {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.codigo-reenviar {
+  margin: 0;
+  font-size: 14px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.codigo-ok {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+@media (max-width: 480px) {
+  .login-linha {
+    grid-template-columns: 1fr;
+  }
+
+  .codigo-digitos {
+    gap: 6px;
+  }
+
+  .codigo-digitos input {
+    height: 50px;
+    font-size: 20px;
   }
 }
