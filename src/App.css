@@ -1476,7 +1476,7 @@ main {
 
 .login {
   display: grid;
-  grid-template-columns: minmax(320px, 32fr) 68fr;
+  grid-template-columns: minmax(300px, 26fr) 74fr;
   min-height: 100vh;
   background: #f6f8f3;
 }
