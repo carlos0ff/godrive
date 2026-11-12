@@ -1,0 +1,113 @@
+/* Base global do goDrive.
+   Substitui o CSS residual do template Vite (#root com largura fixa,
+   text-align:center, border-inline, h1 de 56px e tema escuro automático). */
+
+:root {
+  /* Identidade visual Localiza */
+  --green: #00954b;
+  --green-dark: #00763b;
+  --green-soft: #eaf6ee;
+  --navy: #0f2c3f;
+  --text: #46586a;
+  --muted: #7d8b99;
+  --line: #e4e9ee;
+  --bg: #f5f7f9;
+  --surface: #ffffff;
+
+  --sans: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --radius: 12px;
+  --header-h: 72px;
+  --container: 1180px;
+
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  /* Impede que qualquer elemento force rolagem horizontal pela largura da viewport. */
+  max-width: 100%;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#root {
+  /* Sem largura fixa: o #root ocupa a tela e a largura máxima fica nos containers. */
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  color: var(--navy);
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
