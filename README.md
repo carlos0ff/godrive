@@ -78,8 +78,8 @@ godrive/
   `status: 'ATIVA'`.
 - **Valor total:** calculado no backend: `diárias × valor da diária`, arredondando para cima
   qualquer fração de 24 horas.
-- **Listagem pública:** `GET /veiculos` não exige login para o catálogo aparecer na página inicial;
-  cadastrar veículos e qualquer operação de locação exigem o JWT.
+- **Rotas protegidas:** todas as rotas de veículos e de locações passam pelo middleware `autenticar`.
+  Sem login, a página inicial mostra o herói e um convite para entrar no lugar do catálogo.
 - **bcryptjs:** implementação do algoritmo bcrypt em JavaScript puro, com a mesma API e o mesmo
   formato de hash do pacote `bcrypt`, sem precisar compilar código nativo no Windows.
 - **Senhas:** guardadas com bcrypt (`senhaHash`) e nunca devolvidas: as respostas passam por
@@ -155,8 +155,8 @@ Base: `http://localhost:3333/api`. Rotas com 🔒 exigem o cabeçalho
 
 | Método | Rota               | Descrição                                                        |
 | ------ | ------------------ | ---------------------------------------------------------------- |
-| GET    | `/veiculos`        | Lista; filtros opcionais `?busca=`, `?categoria=`, `?disponivel=true` |
-| GET    | `/veiculos/:id`    | Detalhe de um veículo                                            |
+| GET    | `/veiculos` 🔒     | Lista; filtros opcionais `?busca=`, `?categoria=`, `?disponivel=true` |
+| GET    | `/veiculos/:id` 🔒 | Detalhe de um veículo                                            |
 | POST   | `/veiculos` 🔒     | Cadastra (`marca`, `modelo`, `ano`, `categoria`, `placa`, `precoDiaria`, ...) |
 
 ### Locações
@@ -195,8 +195,8 @@ Erros voltam como `{ "erro": "mensagem" }` com o status HTTP adequado
 
 | Rota                | O que faz                                                         |
 | ------------------- | ----------------------------------------------------------------- |
-| `#/`                | Herói, benefícios e catálogo de veículos                           |
-| `#/veiculos`        | Catálogo com busca, categoria, disponibilidade, ordenação e paginação |
+| `#/`                | Herói, benefícios e catálogo de veículos (catálogo requer login)   |
+| `#/veiculos`        | Catálogo com busca, categoria, disponibilidade, ordenação e paginação (requer login) |
 | `#/login`           | Login (JWT)                                                       |
 | `#/cadastro`        | Criação de conta                                                  |
 | `#/confirmar-email` | Código de 6 dígitos (e nova senha, na recuperação)                |
