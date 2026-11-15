@@ -5,18 +5,35 @@ cadastro e login de usuários, cadastro e consulta de veículos, registro de loc
 
 ## Integrantes
 
-| Nome | GitHub |
-| ---- | ------ |
-| _preencher_ | _preencher_ |
-| _preencher_ | _preencher_ |
-| _preencher_ | _preencher_ |
-| _preencher_ | _preencher_ |
+- Genilson Pereira
+- José Carlos
+- Matheus Henrique
 
 | Camada   | Tecnologias                                                      |
 | -------- | ---------------------------------------------------------------- |
 | Frontend | React 19, TypeScript, Vite (CSS próprio)                          |
-| Backend  | Node.js, Express 5, TypeScript, Prisma ORM, JWT, bcrypt, Zod      |
+| Backend  | Node.js, Express 5, TypeScript, Prisma ORM, JWT, bcrypt (bcryptjs), Zod |
 | Banco    | MySQL (ou MariaDB, ex.: XAMPP)                                    |
+
+## Funcionalidades
+
+- Cadastro de usuário com confirmação de e-mail por código, login com JWT, logout e recuperação de senha.
+- Cadastro de veículos (usuário logado) com validação de placa única e diária positiva.
+- Catálogo de veículos com busca, categoria, filtro de disponibilidade, ordenação e paginação.
+- Registro de locação com escolha do veículo, datas e valor calculado no backend.
+- Histórico das locações do usuário (ativas e finalizadas) e finalização com registro da devolução.
+
+## Modelo de dados
+
+| Entidade            | Campos principais                                                                 |
+| ------------------- | --------------------------------------------------------------------------------- |
+| `Usuario`           | id, nome, email (único), senhaHash, papel, emailConfirmado, criadoEm             |
+| `Veiculo`           | id, marca, modelo, placa (única), ano, categoria, precoDiaria, disponivel, ...   |
+| `Locacao`           | id, usuarioId (FK), veiculoId (FK), dataRetirada, dataDevolucao (prevista), devolvidoEm (efetiva), valorDiaria, valorTotal, status (ATIVA/FINALIZADA) |
+| `CodigoVerificacao` | id, usuarioId (FK), codigo, finalidade, expiraEm, usadoEm                        |
+
+Relacionamentos 1:N: `Usuario` → `Locacao`, `Veiculo` → `Locacao` e `Usuario` → `CodigoVerificacao`.
+Locações e veículos não são excluídos, para preservar o histórico.
 
 ## Estrutura
 
@@ -61,6 +78,10 @@ godrive/
   `status: 'ATIVA'`.
 - **Valor total:** calculado no backend: `diárias × valor da diária`, arredondando para cima
   qualquer fração de 24 horas.
+- **Listagem pública:** `GET /veiculos` não exige login para o catálogo aparecer na página inicial;
+  cadastrar veículos e qualquer operação de locação exigem o JWT.
+- **bcryptjs:** implementação do algoritmo bcrypt em JavaScript puro, com a mesma API e o mesmo
+  formato de hash do pacote `bcrypt`, sem precisar compilar código nativo no Windows.
 - **Senhas:** guardadas com bcrypt (`senhaHash`) e nunca devolvidas: as respostas passam por
   `formatarUsuario`, que expõe só id, nome, e-mail e papel.
 

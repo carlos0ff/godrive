@@ -15,7 +15,6 @@ enum Papel {
 enum StatusLocacao {
   ATIVA
   FINALIZADA
-  CANCELADA
 }
 
 enum FinalidadeCodigo {

@@ -8,7 +8,6 @@ import { useRecurso } from '../useRecurso'
 const ROTULO_STATUS: Record<string, string> = {
   ativa: 'Ativa',
   finalizada: 'Finalizada',
-  cancelada: 'Cancelada',
 }
 
 const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -47,9 +46,7 @@ export function LocacoesPage() {
   }
 
   const ativas = locacoes.filter((locacao) => locacao.status === 'ativa').length
-  const totalGasto = locacoes
-    .filter((locacao) => locacao.status !== 'cancelada')
-    .reduce((soma, locacao) => soma + locacao.valorTotal, 0)
+  const totalGasto = locacoes.reduce((soma, locacao) => soma + locacao.valorTotal, 0)
 
   return (
     <section className="container">

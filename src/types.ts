@@ -25,7 +25,7 @@ export interface Usuario {
   papel: Papel
 }
 
-export type StatusLocacao = 'ativa' | 'finalizada' | 'cancelada'
+export type StatusLocacao = 'ativa' | 'finalizada'
 
 export interface Locacao {
   id: number
