@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ClipboardEvent, type FormEvent, type KeyboardEvent } from 'react'
+import { api, mensagemDeErro } from '../api'
 import { IconeCadeado, IconeCheck, IconeSeta } from '../components/Icones'
 import { CampoAuth, LayoutAuth } from '../components/LayoutAuth'
 
@@ -12,9 +13,6 @@ interface Props {
 
 type Etapa = 'codigo' | 'nova-senha' | 'concluido'
 
-/* Confirmação por código de 6 dígitos. Serve ao cadastro (confirma o e-mail)
-   e à recuperação (libera a troca de senha). Sem backend: qualquer código
-   completo é aceito. */
 export function ConfirmarEmailPage({ email, origem }: Props) {
   const recuperando = origem === 'recuperar'
 
@@ -25,6 +23,7 @@ export function ConfirmarEmailPage({ email, origem }: Props) {
   const [espera, setEspera] = useState(ESPERA_REENVIO)
   const [senha, setSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
+  const [enviando, setEnviando] = useState(false)
   const campos = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
@@ -61,13 +60,22 @@ export function ConfirmarEmailPage({ email, origem }: Props) {
     focar(colado.length)
   }
 
-  function reenviar() {
+  const finalidade = recuperando ? 'RECUPERAR_SENHA' : 'CONFIRMAR_EMAIL'
+  const codigo = digitos.join('')
+
+  async function reenviar() {
     setEspera(ESPERA_REENVIO)
     setErro(null)
-    setAviso(`Enviamos um novo código para ${email || 'seu e-mail'}.`)
+
+    try {
+      await api.reenviarCodigo(email, finalidade)
+      setAviso(`Enviamos um novo código para ${email || 'seu e-mail'}.`)
+    } catch (falha) {
+      setErro(mensagemDeErro(falha))
+    }
   }
 
-  function confirmarCodigo(evento: FormEvent<HTMLFormElement>) {
+  async function confirmarCodigo(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 
     if (digitos.some((d) => !d)) {
@@ -75,12 +83,23 @@ export function ConfirmarEmailPage({ email, origem }: Props) {
       return
     }
 
-    setErro(null)
-    setAviso(null)
-    setEtapa(recuperando ? 'nova-senha' : 'concluido')
+    setEnviando(true)
+
+    try {
+      if (recuperando) await api.verificarCodigo(email, codigo, finalidade)
+      else await api.confirmarEmail(email, codigo)
+
+      setErro(null)
+      setAviso(null)
+      setEtapa(recuperando ? 'nova-senha' : 'concluido')
+    } catch (falha) {
+      setErro(mensagemDeErro(falha))
+    } finally {
+      setEnviando(false)
+    }
   }
 
-  function salvarSenha(evento: FormEvent<HTMLFormElement>) {
+  async function salvarSenha(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 
     if (senha.length < 6) {
@@ -93,8 +112,17 @@ export function ConfirmarEmailPage({ email, origem }: Props) {
       return
     }
 
-    setErro(null)
-    setEtapa('concluido')
+    setEnviando(true)
+
+    try {
+      await api.redefinirSenha(email, codigo, senha)
+      setErro(null)
+      setEtapa('concluido')
+    } catch (falha) {
+      setErro(mensagemDeErro(falha))
+    } finally {
+      setEnviando(false)
+    }
   }
 
   const textos = {
@@ -116,8 +144,8 @@ export function ConfirmarEmailPage({ email, origem }: Props) {
       eyebrow: 'Tudo certo!',
       titulo: recuperando ? 'Senha redefinida' : 'E-mail confirmado',
       descricao: recuperando
-        ? 'Sua nova senha foi definida. Este app é só frontend: nada foi salvo.'
-        : 'Sua conta está pronta. Este app é só frontend: nada foi salvo.',
+        ? 'Sua nova senha foi definida. Entre com ela para continuar.'
+        : 'Sua conta está pronta. Entre para reservar seu carro.',
     },
   }[etapa]
 
@@ -167,12 +195,12 @@ export function ConfirmarEmailPage({ email, origem }: Props) {
             </div>
 
             <small className="codigo-dica">
-              Sem backend, qualquer código de {DIGITOS} números é aceito.
+              O código vale por 15 minutos.
             </small>
           </fieldset>
 
-          <button type="submit" className="login-entrar">
-            Confirmar código
+          <button type="submit" className="login-entrar" disabled={enviando}>
+            {enviando ? 'Verificando…' : 'Confirmar código'}
             <IconeSeta width={16} height={16} />
           </button>
 
@@ -219,8 +247,8 @@ export function ConfirmarEmailPage({ email, origem }: Props) {
             onChange={(evento) => setConfirmacao(evento.target.value)}
           />
 
-          <button type="submit" className="login-entrar">
-            Salvar nova senha
+          <button type="submit" className="login-entrar" disabled={enviando}>
+            {enviando ? 'Salvando…' : 'Salvar nova senha'}
             <IconeSeta width={16} height={16} />
           </button>
         </form>

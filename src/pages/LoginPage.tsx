@@ -1,15 +1,17 @@
 import { useState, type FormEvent } from 'react'
+import { api, ErroApi, mensagemDeErro } from '../api'
 import { IconeCadeado, IconeEmail, IconeSeta } from '../components/Icones'
 import { CampoAuth, LayoutAuth } from '../components/LayoutAuth'
+import { iniciarSessao } from '../sessao'
 
-export function LoginPage() {
+export function LoginPage({ volta }: { volta: string }) {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [lembrar, setLembrar] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [aviso, setAviso] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
 
-  function enviar(evento: FormEvent<HTMLFormElement>) {
+  async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 
     let problema: string | null = null
@@ -18,7 +20,26 @@ export function LoginPage() {
     else if (!senha) problema = 'Informe a senha.'
 
     setErro(problema)
-    setAviso(problema ? null : 'Formulário válido. Este app é só frontend: o login não é verificado.')
+
+    if (problema) return
+
+    setEnviando(true)
+
+    try {
+      const sessao = await api.login(email.trim(), senha)
+
+      iniciarSessao(sessao, lembrar)
+      window.location.hash = volta.startsWith('/') ? volta : '/'
+    } catch (falha) {
+      if (falha instanceof ErroApi && falha.status === 403) {
+        await api.reenviarCodigo(email.trim(), 'CONFIRMAR_EMAIL').catch(() => null)
+        window.location.hash = `/confirmar-email?email=${encodeURIComponent(email.trim())}`
+        return
+      }
+
+      setErro(mensagemDeErro(falha))
+      setEnviando(false)
+    }
   }
 
   return (
@@ -31,12 +52,6 @@ export function LoginPage() {
       carro={{ src: '/veiculos/PEUA.png', alt: 'Peugeot 208 azul' }}
     >
       <form className="login-form" onSubmit={enviar} noValidate>
-        {aviso && (
-          <p className="form-sucesso" role="status">
-            {aviso}
-          </p>
-        )}
-
         {erro && (
           <p className="form-erro" role="alert">
             {erro}
@@ -81,8 +96,8 @@ export function LoginPage() {
           </a>
         </div>
 
-        <button type="submit" className="login-entrar">
-          Entrar
+        <button type="submit" className="login-entrar" disabled={enviando}>
+          {enviando ? 'Entrando…' : 'Entrar'}
           <IconeSeta width={16} height={16} />
         </button>
       </form>

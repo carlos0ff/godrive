@@ -1,44 +1,169 @@
-# goDrive
+# goDrive — Sistema de Locação de Veículos
 
-Frontend de uma locadora de veículos em **React + TypeScript + Vite**, com CSS próprio
-e sem dependências além de `react`/`react-dom`.
+Projeto da disciplina **Programação com Frameworks Web**. Sistema completo de locadora com
+cadastro e login de usuários, cadastro e consulta de veículos, registro de locações e devoluções.
 
-O app é **somente frontend**: não há backend, login, chamadas de rede nem dados salvos.
-O catálogo e o exemplo de locação são fixos (`src/catalogo.ts`). Os formulários validam
-os campos e mostram uma confirmação, mas nada é gravado.
+| Camada   | Tecnologias                                                      |
+| -------- | ---------------------------------------------------------------- |
+| Frontend | React 19, TypeScript, Vite (CSS próprio)                          |
+| Backend  | Node.js, Express 5, TypeScript, Prisma ORM, JWT, bcrypt, Zod      |
+| Banco    | MySQL (ou MariaDB, ex.: XAMPP)                                    |
+
+## Estrutura
+
+```
+godrive/
+  backend/            API REST
+    prisma/
+      schema.prisma   modelos Usuario, Veiculo, Locacao e CodigoVerificacao
+      migrations/     migrações do banco
+      seed.ts         usuários e veículos iniciais
+    src/
+      server.ts       sobe o servidor
+      app.ts          Express, CORS, rotas e tratamento de erros
+      config.ts       variáveis de ambiente
+      prisma.ts       cliente do Prisma
+      erros.ts        ErroApp e middleware de erros
+      formatar.ts     converte registros do banco para JSON
+      middlewares/autenticacao.ts   JWT (autenticar, exigirAdmin)
+      rotas/          auth.ts, veiculos.ts, locacoes.ts
+  src/                frontend React
+    api.ts            chamadas à API com o token JWT
+    sessao.ts         sessão do usuário (token + dados)
+    useRecurso.ts     hook de carregamento de dados
+    components/       cabeçalho, rodapé, cartão de veículo, estados, ícones
+    pages/            uma página por rota
+```
 
 ## Como rodar
+
+Pré-requisitos: **Node.js 20+** e **MySQL** rodando (no XAMPP, basta iniciar o MySQL).
+
+### 1. Backend
+
+```bash
+cd backend
+npm install
+cp .env.example .env
+npm run db:migrate
+npm run dev
+```
+
+Ajuste `DATABASE_URL` no `.env` se o seu MySQL tiver senha
+(formato `mysql://usuario:senha@localhost:3306/godrive`). O `db:migrate` cria o banco
+`godrive`, as tabelas e roda o seed. A API sobe em `http://localhost:3333/api`.
+
+### 2. Frontend
+
+Em outro terminal, na raiz do projeto:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Outros comandos: `npm run build` (typecheck + build), `npm run preview` e `npm run lint`.
+Abra `http://localhost:5173`. O Vite encaminha `/api` para o backend
+(para outra porta, use a variável `API_URL`, ex.: `API_URL=http://localhost:4000`).
 
-## Páginas
+### Usuários de teste (criados pelo seed)
 
-| Rota                | O que faz                                                            |
-| ------------------- | -------------------------------------------------------------------- |
-| `#/`                | Herói, benefícios e catálogo de veículos                              |
-| `#/veiculos`        | Catálogo com busca, filtro por categoria, disponibilidade, ordenação e paginação |
-| `#/login`           | Login em tela cheia (só validação)                                    |
-| `#/cadastro`        | Criação de conta; leva à confirmação do e-mail                        |
-| `#/recuperar`       | Recuperação de senha; envia para o código de verificação              |
-| `#/confirmar-email` | Código de 6 dígitos (e nova senha, quando vem da recuperação)         |
-| `#/veiculos/novo`   | Formulário de cadastro de veículo (só validação)                      |
-| `#/locacoes`        | Exemplo de histórico de locações                                      |
-| `#/locacoes/nova`   | Escolha do veículo, datas e valor estimado                            |
+| Perfil        | E-mail                | Senha        |
+| ------------- | --------------------- | ------------ |
+| Administrador | `admin@godrive.com`   | `admin123`   |
+| Cliente       | `cliente@godrive.com` | `cliente123` |
 
-A navegação é por hash (`#/rota`), tratada direto em `src/App.tsx`, e funciona em
-qualquer hospedagem estática.
+O administrador cadastra veículos e vê todas as locações; o cliente vê só as próprias.
 
-## Estrutura
+### Códigos de verificação
+
+O cadastro e a recuperação de senha usam um código de 6 dígitos com validade de 15 minutos.
+O projeto não envia e-mails de verdade: **o código aparece no terminal do backend**, assim:
 
 ```
-src/
-  App.tsx     navegação por hash e escolha da página
-  catalogo.ts veículos e locação de exemplo (fixos)
-  components/ cabeçalho, rodapé, cartão de veículo, estado vazio, ícones SVG
-  pages/      uma página por rota
+[e-mail] Código de confirmação de e-mail para ana@exemplo.com: 482913
 ```
+
+## Rotas da API
+
+Base: `http://localhost:3333/api`. Rotas com 🔒 exigem o cabeçalho
+`Authorization: Bearer <token>`; 👑 exige perfil administrador.
+
+### Autenticação
+
+| Método | Rota                     | Corpo                                  | Descrição                               |
+| ------ | ------------------------ | -------------------------------------- | --------------------------------------- |
+| POST   | `/auth/cadastro`         | `nome`, `email`, `senha`               | Cria a conta e envia o código           |
+| POST   | `/auth/confirmar-email`  | `email`, `codigo`                      | Confirma o e-mail                       |
+| POST   | `/auth/reenviar-codigo`  | `email`, `finalidade`                  | Reenvia o código (`CONFIRMAR_EMAIL` ou `RECUPERAR_SENHA`) |
+| POST   | `/auth/login`            | `email`, `senha`                       | Retorna `token` (JWT) e `usuario`       |
+| POST   | `/auth/recuperar`        | `email`                                | Envia código de recuperação de senha    |
+| POST   | `/auth/verificar-codigo` | `email`, `codigo`, `finalidade`        | Valida um código sem usá-lo             |
+| POST   | `/auth/redefinir-senha`  | `email`, `codigo`, `senha`             | Troca a senha                           |
+| GET    | `/auth/perfil` 🔒        | —                                      | Dados do usuário logado                 |
+
+### Veículos
+
+| Método | Rota               | Descrição                                                        |
+| ------ | ------------------ | ---------------------------------------------------------------- |
+| GET    | `/veiculos`        | Lista; filtros opcionais `?busca=`, `?categoria=`, `?disponivel=true` |
+| GET    | `/veiculos/:id`    | Detalhe de um veículo                                            |
+| POST   | `/veiculos` 🔒👑   | Cadastra (`marca`, `modelo`, `ano`, `categoria`, `placa`, `precoDiaria`, ...) |
+| PUT    | `/veiculos/:id` 🔒👑 | Atualiza                                                       |
+| DELETE | `/veiculos/:id` 🔒👑 | Exclui (bloqueado se o veículo já tiver locações)             |
+
+### Locações
+
+| Método | Rota                          | Descrição                                                   |
+| ------ | ----------------------------- | ----------------------------------------------------------- |
+| GET    | `/locacoes` 🔒                | Lista (cliente: as suas; admin: todas); filtro `?status=ativa` |
+| GET    | `/locacoes/:id` 🔒            | Detalhe                                                     |
+| POST   | `/locacoes` 🔒                | Registra (`veiculoId`, `dataRetirada`, `dataDevolucao` em `AAAA-MM-DD`) |
+| PATCH  | `/locacoes/:id/devolucao` 🔒  | Registra a devolução (opcional: `quilometragem`)            |
+| PATCH  | `/locacoes/:id/cancelamento` 🔒 | Cancela uma locação ativa                                 |
+
+Regras: o valor total é `diárias × preço da diária`; a retirada não pode ser no passado;
+ao locar, o veículo fica indisponível, e volta a ficar disponível na devolução ou no cancelamento.
+
+### Exemplo com curl
+
+```bash
+curl -X POST http://localhost:3333/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"cliente@godrive.com","senha":"cliente123"}'
+
+curl -X POST http://localhost:3333/api/locacoes \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer SEU_TOKEN" \
+  -d '{"veiculoId":2,"dataRetirada":"2026-12-01","dataDevolucao":"2026-12-04"}'
+
+curl -X PATCH http://localhost:3333/api/locacoes/1/devolucao \
+  -H "Authorization: Bearer SEU_TOKEN"
+```
+
+Erros voltam como `{ "erro": "mensagem" }` com o status HTTP adequado
+(400 validação, 401 sem login, 403 sem permissão, 404 não encontrado, 409 conflito).
+
+## Páginas do frontend
+
+| Rota                | O que faz                                                         |
+| ------------------- | ----------------------------------------------------------------- |
+| `#/`                | Herói, benefícios e catálogo de veículos                           |
+| `#/veiculos`        | Catálogo com busca, categoria, disponibilidade, ordenação e paginação |
+| `#/login`           | Login (JWT)                                                       |
+| `#/cadastro`        | Criação de conta                                                  |
+| `#/confirmar-email` | Código de 6 dígitos (e nova senha, na recuperação)                |
+| `#/recuperar`       | Recuperação de senha                                              |
+| `#/veiculos/novo`   | Cadastro de veículo (somente administrador)                       |
+| `#/locacoes`        | Locações e registro de devolução (requer login)                   |
+| `#/locacoes/nova`   | Nova locação com valor estimado (requer login)                    |
+
+## Outros comandos
+
+| Onde      | Comando             | O que faz                         |
+| --------- | ------------------- | --------------------------------- |
+| raiz      | `npm run build`     | Typecheck e build do frontend     |
+| raiz      | `npm run lint`      | ESLint do frontend                |
+| `backend` | `npm run build`     | Compila a API para `dist/`        |
+| `backend` | `npm start`         | Roda a API compilada              |
+| `backend` | `npm run db:seed`   | Roda o seed de novo               |
+| `backend` | `npm run db:reset`  | Apaga e recria o banco            |

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { EstadoVazio } from './components/Estados'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
 import { CadastroPage } from './pages/CadastroPage'
@@ -10,9 +11,9 @@ import { NaoEncontradaPage } from './pages/NaoEncontradaPage'
 import { NovaLocacaoPage } from './pages/NovaLocacaoPage'
 import { NovoVeiculoPage } from './pages/NovoVeiculoPage'
 import { RecuperarPage } from './pages/RecuperarPage'
+import { useSessao } from './sessao'
 import './App.css'
 
-/* Navegação por hash (#/rota?consulta): os links são <a href="#/..."> comuns. */
 function useHash() {
   const [hash, setHash] = useState(window.location.hash)
 
@@ -30,13 +31,28 @@ function useHash() {
 
   return {
     caminho: caminho.replace(/\/+$/, '') || '/',
+    consulta,
     parametros: new URLSearchParams(consulta),
   }
 }
 
+function Redirecionar({ para }: { para: string }) {
+  useEffect(() => {
+    window.location.replace(`#${para}`)
+  }, [para])
+
+  return null
+}
+
 function App() {
-  const { caminho, parametros } = useHash()
+  const { caminho, consulta, parametros } = useHash()
+  const { autenticado, ehAdmin } = useSessao()
   const busca = parametros.get('busca') ?? ''
+  const destino = `${caminho}${consulta ? `?${consulta}` : ''}`
+
+  function exigirLogin(conteudo: ReactNode) {
+    return autenticado ? conteudo : <Redirecionar para={`/login?volta=${encodeURIComponent(destino)}`} />
+  }
 
   let pagina
 
@@ -46,22 +62,37 @@ function App() {
       pagina = <CatalogoPage busca={busca} mostrarHero={caminho === '/'} />
       break
     case '/veiculos/novo':
-      pagina = <NovoVeiculoPage />
+      pagina = exigirLogin(
+        ehAdmin ? (
+          <NovoVeiculoPage />
+        ) : (
+          <section className="container pagina-estreita">
+            <EstadoVazio
+              titulo="Acesso restrito"
+              descricao="Somente administradores podem cadastrar veículos."
+              acao={
+                <a href="#/veiculos" className="botao botao-primario">
+                  Ver veículos
+                </a>
+              }
+            />
+          </section>
+        ),
+      )
       break
     case '/locacoes':
-      pagina = <LocacoesPage />
+      pagina = exigirLogin(<LocacoesPage />)
       break
     case '/locacoes/nova':
-      pagina = <NovaLocacaoPage veiculoInicial={parametros.get('veiculo') ?? ''} />
+      pagina = exigirLogin(<NovaLocacaoPage veiculoInicial={parametros.get('veiculo') ?? ''} />)
       break
     default:
       pagina = <NaoEncontradaPage />
   }
 
-  /* As telas de autenticação ocupam a tela inteira, sem cabeçalho nem rodapé. */
   switch (caminho) {
     case '/login':
-      return <LoginPage />
+      return <LoginPage volta={parametros.get('volta') ?? ''} />
     case '/cadastro':
       return <CadastroPage />
     case '/recuperar':

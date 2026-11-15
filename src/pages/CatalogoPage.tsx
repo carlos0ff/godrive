@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { EstadoVazio } from '../components/Estados'
+import { api } from '../api'
+import { Carregando, EstadoErro, EstadoVazio } from '../components/Estados'
 import { CartaoVeiculo } from '../components/CartaoVeiculo'
 import {
   IconeEscudo,
@@ -7,8 +8,8 @@ import {
   IconeSetaBaixo,
   IconeSuporte,
 } from '../components/Icones'
-import { VEICULOS } from '../catalogo'
 import type { Veiculo } from '../types'
+import { useRecurso } from '../useRecurso'
 
 const POR_PAGINA = 6
 
@@ -25,10 +26,6 @@ const COMPARAR: Record<string, (a: Veiculo, b: Veiculo) => number> = {
   'mais-novos': (a, b) => b.ano - a.ano,
 }
 
-const CATEGORIAS = [...new Set(VEICULOS.map((v) => v.categoria))].sort((a, b) =>
-  a.localeCompare(b, 'pt-BR'),
-)
-
 function reservar(veiculo: Veiculo) {
   window.location.hash = `/locacoes/nova?veiculo=${encodeURIComponent(veiculo.id)}`
 }
@@ -43,8 +40,13 @@ export function CatalogoPage({ busca, mostrarHero }: Props) {
   const [somenteDisponiveis, setSomenteDisponiveis] = useState(true)
   const [ordenar, setOrdenar] = useState('recomendados')
   const [pagina, setPagina] = useState(1)
+  const { dados: veiculos, carregando, erro, recarregar } = useRecurso(api.listarVeiculos, [] as Veiculo[])
 
-  /* Trocar um filtro volta para a primeira página. */
+  const categorias = useMemo(
+    () => [...new Set(veiculos.map((v) => v.categoria))].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [veiculos],
+  )
+
   const filtros = `${busca}|${categoria}|${somenteDisponiveis}|${ordenar}`
   const [filtrosAnteriores, setFiltrosAnteriores] = useState(filtros)
 
@@ -56,7 +58,7 @@ export function CatalogoPage({ busca, mostrarHero }: Props) {
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase()
 
-    const lista = VEICULOS.filter((v) => {
+    const lista = veiculos.filter((v) => {
       if (termo && !`${v.marca} ${v.modelo}`.toLowerCase().includes(termo)) return false
       if (categoria && v.categoria !== categoria) return false
       if (somenteDisponiveis && !v.disponivel) return false
@@ -66,11 +68,10 @@ export function CatalogoPage({ busca, mostrarHero }: Props) {
     const comparar = COMPARAR[ordenar]
 
     return comparar ? [...lista].sort(comparar) : lista
-  }, [busca, categoria, somenteDisponiveis, ordenar])
+  }, [veiculos, busca, categoria, somenteDisponiveis, ordenar])
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA))
   const itens = filtrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
-
 
   return (
     <>
@@ -172,7 +173,7 @@ export function CatalogoPage({ busca, mostrarHero }: Props) {
               Todos
             </button>
 
-            {CATEGORIAS.map((nome) => (
+            {categorias.map((nome) => (
               <button
                 key={nome}
                 type="button"
@@ -220,14 +221,18 @@ export function CatalogoPage({ busca, mostrarHero }: Props) {
           </div>
         </div>
 
-        {itens.length === 0 && (
+        {carregando && <Carregando texto="Carregando veículos…" />}
+
+        {!carregando && erro && <EstadoErro mensagem={erro} aoTentarNovamente={recarregar} />}
+
+        {!carregando && !erro && itens.length === 0 && (
           <EstadoVazio
             titulo="Nenhum veículo encontrado"
             descricao="Ajuste a busca ou os filtros para ver outras opções."
           />
         )}
 
-        {itens.length > 0 && (
+        {!carregando && !erro && itens.length > 0 && (
           <div className="grade-veiculos">
             {itens.map((veiculo) => (
               <CartaoVeiculo key={veiculo.id} veiculo={veiculo} aoReservar={reservar} />

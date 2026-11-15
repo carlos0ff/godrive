@@ -1,5 +1,3 @@
-/* Ilustração SVG usada quando o veículo não tem foto ou a imagem falha. */
-
 type Forma = 'hatch' | 'seda' | 'suv' | 'picape'
 
 const CARROCERIA: Record<Forma, string> = {
