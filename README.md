@@ -3,6 +3,15 @@
 Projeto da disciplina **Programação com Frameworks Web**. Sistema completo de locadora com
 cadastro e login de usuários, cadastro e consulta de veículos, registro de locações e devoluções.
 
+## Integrantes
+
+| Nome | GitHub |
+| ---- | ------ |
+| _preencher_ | _preencher_ |
+| _preencher_ | _preencher_ |
+| _preencher_ | _preencher_ |
+| _preencher_ | _preencher_ |
+
 | Camada   | Tecnologias                                                      |
 | -------- | ---------------------------------------------------------------- |
 | Frontend | React 19, TypeScript, Vite (CSS próprio)                          |
@@ -25,8 +34,10 @@ godrive/
       prisma.ts       cliente do Prisma
       erros.ts        ErroApp e middleware de erros
       formatar.ts     converte registros do banco para JSON
-      middlewares/autenticacao.ts   JWT (autenticar, exigirAdmin)
-      rotas/          auth.ts, veiculos.ts, locacoes.ts
+      middlewares/autenticacao.ts   gera e valida o JWT (autenticar)
+      rotas/          mapeamento dos endpoints para os controllers
+      controllers/    entrada e resposta HTTP (authController, veiculoController, locacaoController)
+      services/       validações e regras de negócio (authService, veiculoService, locacaoService)
   src/                frontend React
     api.ts            chamadas à API com o token JWT
     sessao.ts         sessão do usuário (token + dados)
@@ -34,6 +45,24 @@ godrive/
     components/       cabeçalho, rodapé, cartão de veículo, estados, ícones
     pages/            uma página por rota
 ```
+
+## Arquitetura e decisões
+
+- **Routes → Controllers → Services → Prisma.** As rotas só ligam o endpoint ao controller; o
+  controller lê `req` (corpo, parâmetros e o usuário do token) e devolve a resposta HTTP; o service
+  valida os dados com Zod, aplica as regras de negócio e acessa o banco pelo Prisma.
+- **Erros:** os services lançam `ErroApp(status, mensagem)`; o middleware `tratarErros` converte
+  em JSON com o código HTTP certo (400, 401, 403, 404, 409). Erros do Zod viram 400.
+- **Dono da locação:** o `usuarioId` sempre vem do JWT (`req.usuario.id`), nunca do corpo.
+  As consultas filtram por `{ id, usuarioId }`, então a locação de outro usuário responde 404.
+- **Concorrência:** registrar e finalizar rodam em `prisma.$transaction`. O veículo só é
+  reservado com `updateMany({ where: { id, disponivel: true } })`; se outra requisição já
+  reservou, `count` é 0 e a API responde 409. A finalização usa a mesma ideia com
+  `status: 'ATIVA'`.
+- **Valor total:** calculado no backend: `diárias × valor da diária`, arredondando para cima
+  qualquer fração de 24 horas.
+- **Senhas:** guardadas com bcrypt (`senhaHash`) e nunca devolvidas: as respostas passam por
+  `formatarUsuario`, que expõe só id, nome, e-mail e papel.
 
 ## Como rodar
 
@@ -72,7 +101,7 @@ Abra `http://localhost:5173`. O Vite encaminha `/api` para o backend
 | Administrador | `admin@godrive.com`   | `admin123`   |
 | Cliente       | `cliente@godrive.com` | `cliente123` |
 
-O administrador cadastra veículos e vê todas as locações; o cliente vê só as próprias.
+Qualquer usuário logado cadastra veículos e registra locações; cada um vê e finaliza só as próprias locações.
 
 ### Códigos de verificação
 
@@ -86,7 +115,7 @@ O projeto não envia e-mails de verdade: **o código aparece no terminal do back
 ## Rotas da API
 
 Base: `http://localhost:3333/api`. Rotas com 🔒 exigem o cabeçalho
-`Authorization: Bearer <token>`; 👑 exige perfil administrador.
+`Authorization: Bearer <token>`.
 
 ### Autenticação
 
@@ -107,22 +136,20 @@ Base: `http://localhost:3333/api`. Rotas com 🔒 exigem o cabeçalho
 | ------ | ------------------ | ---------------------------------------------------------------- |
 | GET    | `/veiculos`        | Lista; filtros opcionais `?busca=`, `?categoria=`, `?disponivel=true` |
 | GET    | `/veiculos/:id`    | Detalhe de um veículo                                            |
-| POST   | `/veiculos` 🔒👑   | Cadastra (`marca`, `modelo`, `ano`, `categoria`, `placa`, `precoDiaria`, ...) |
-| PUT    | `/veiculos/:id` 🔒👑 | Atualiza                                                       |
-| DELETE | `/veiculos/:id` 🔒👑 | Exclui (bloqueado se o veículo já tiver locações)             |
+| POST   | `/veiculos` 🔒     | Cadastra (`marca`, `modelo`, `ano`, `categoria`, `placa`, `precoDiaria`, ...) |
 
 ### Locações
 
 | Método | Rota                          | Descrição                                                   |
 | ------ | ----------------------------- | ----------------------------------------------------------- |
-| GET    | `/locacoes` 🔒                | Lista (cliente: as suas; admin: todas); filtro `?status=ativa` |
+| GET    | `/locacoes` 🔒                | Lista as locações do usuário logado; filtro `?status=ativa` ou `finalizada` |
 | GET    | `/locacoes/:id` 🔒            | Detalhe                                                     |
 | POST   | `/locacoes` 🔒                | Registra (`veiculoId`, `dataRetirada`, `dataDevolucao` em `AAAA-MM-DD`) |
-| PATCH  | `/locacoes/:id/devolucao` 🔒  | Registra a devolução (opcional: `quilometragem`)            |
-| PATCH  | `/locacoes/:id/cancelamento` 🔒 | Cancela uma locação ativa                                 |
+| PATCH  | `/locacoes/:id/devolucao` 🔒  | Finaliza a locação e registra a devolução (opcional: `quilometragem`) |
 
 Regras: o valor total é `diárias × preço da diária`; a retirada não pode ser no passado;
-ao locar, o veículo fica indisponível, e volta a ficar disponível na devolução ou no cancelamento.
+a devolução precisa ser depois da retirada; ao locar, o veículo fica indisponível e volta a ficar
+disponível na devolução; uma locação finalizada não pode ser finalizada de novo.
 
 ### Exemplo com curl
 
@@ -153,7 +180,7 @@ Erros voltam como `{ "erro": "mensagem" }` com o status HTTP adequado
 | `#/cadastro`        | Criação de conta                                                  |
 | `#/confirmar-email` | Código de 6 dígitos (e nova senha, na recuperação)                |
 | `#/recuperar`       | Recuperação de senha                                              |
-| `#/veiculos/novo`   | Cadastro de veículo (somente administrador)                       |
+| `#/veiculos/novo`   | Cadastro de veículo (requer login)                                |
 | `#/locacoes`        | Locações e registro de devolução (requer login)                   |
 | `#/locacoes/nova`   | Nova locação com valor estimado (requer login)                    |
 

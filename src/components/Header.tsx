@@ -21,7 +21,7 @@ interface Props {
 const LINKS = [
   { para: '/veiculos', rotulo: 'Veículos' },
   { para: '/locacoes', rotulo: 'Minhas locações' },
-  { para: '/veiculos/novo', rotulo: 'Cadastrar veículo', somenteAdmin: true },
+  { para: '/veiculos/novo', rotulo: 'Cadastrar veículo' },
 ]
 
 export function Header({ caminho, busca: buscaDaUrl }: Props) {
@@ -119,7 +119,7 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
         </form>
 
         <nav className="nav-links" aria-label="Navegação principal">
-          {LINKS.filter((link) => !link.somenteAdmin || ehAdmin).map((link) => (
+          {LINKS.map((link) => (
             <a
               key={link.para}
               href={`#${link.para}`}
@@ -175,12 +175,10 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
                     <span>Minhas locações</span>
                   </a>
 
-                  {ehAdmin && (
-                    <a href="#/veiculos/novo" role="menuitem">
-                      <IconeMais />
-                      <span>Cadastrar veículo</span>
-                    </a>
-                  )}
+                  <a href="#/veiculos/novo" role="menuitem">
+                    <IconeMais />
+                    <span>Cadastrar veículo</span>
+                  </a>
 
                   <button type="button" role="menuitem" onClick={sair}>
                     <IconeSair />

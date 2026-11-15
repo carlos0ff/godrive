@@ -37,9 +37,3 @@ export const autenticar: RequestHandler = (req, _res, next) => {
 
   next()
 }
-
-export const exigirAdmin: RequestHandler = (req, _res, next) => {
-  if (req.usuario?.papel !== 'ADMIN') throw new ErroApp(403, 'Apenas administradores podem fazer isso.')
-
-  next()
-}

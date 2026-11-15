@@ -1,5 +1,4 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { EstadoVazio } from './components/Estados'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
 import { CadastroPage } from './pages/CadastroPage'
@@ -46,7 +45,7 @@ function Redirecionar({ para }: { para: string }) {
 
 function App() {
   const { caminho, consulta, parametros } = useHash()
-  const { autenticado, ehAdmin } = useSessao()
+  const { autenticado } = useSessao()
   const busca = parametros.get('busca') ?? ''
   const destino = `${caminho}${consulta ? `?${consulta}` : ''}`
 
@@ -62,23 +61,7 @@ function App() {
       pagina = <CatalogoPage busca={busca} mostrarHero={caminho === '/'} />
       break
     case '/veiculos/novo':
-      pagina = exigirLogin(
-        ehAdmin ? (
-          <NovoVeiculoPage />
-        ) : (
-          <section className="container pagina-estreita">
-            <EstadoVazio
-              titulo="Acesso restrito"
-              descricao="Somente administradores podem cadastrar veículos."
-              acao={
-                <a href="#/veiculos" className="botao botao-primario">
-                  Ver veículos
-                </a>
-              }
-            />
-          </section>
-        ),
-      )
+      pagina = exigirLogin(<NovoVeiculoPage />)
       break
     case '/locacoes':
       pagina = exigirLogin(<LocacoesPage />)

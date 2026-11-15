@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { api, mensagemDeErro } from '../api'
 import { Carregando, EstadoErro, EstadoVazio } from '../components/Estados'
 import { IconeAgenda, IconeCheck } from '../components/Icones'
-import { useSessao } from '../sessao'
 import type { Locacao } from '../types'
 import { useRecurso } from '../useRecurso'
 
@@ -19,7 +18,6 @@ function formatarData(iso: string) {
 }
 
 export function LocacoesPage() {
-  const { ehAdmin } = useSessao()
   const {
     dados: locacoes,
     carregando,
@@ -58,12 +56,8 @@ export function LocacoesPage() {
       <div className="secao-topo">
         <div>
           <span className="eyebrow">Histórico</span>
-          <h1>{ehAdmin ? 'Locações' : 'Minhas locações'}</h1>
-          <p className="secao-subtitulo">
-            {ehAdmin
-              ? 'Todas as reservas da locadora. Registre a devolução quando o carro voltar.'
-              : 'Acompanhe suas reservas e registre a devolução dos veículos.'}
-          </p>
+          <h1>Minhas locações</h1>
+          <p className="secao-subtitulo">Acompanhe suas reservas e registre a devolução dos veículos.</p>
         </div>
 
         <a href="#/locacoes/nova" className="botao botao-primario">
@@ -133,7 +127,6 @@ export function LocacoesPage() {
                 <span>
                   {locacao.veiculo?.categoria}
                   {locacao.veiculo?.placa ? ` · ${locacao.veiculo.placa}` : ''}
-                  {ehAdmin && locacao.usuario ? ` · ${locacao.usuario.nome}` : ''}
                 </span>
               </div>
 
