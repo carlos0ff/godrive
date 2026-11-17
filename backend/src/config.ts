@@ -14,5 +14,6 @@ export const config = {
   porta: Number(process.env.PORT ?? 3333),
   jwtSegredo: obrigatoria('JWT_SECRET'),
   jwtExpiracao: process.env.JWT_EXPIRES_IN ?? '1d',
+  limiteTentativasLogin: Number(process.env.LOGIN_RATE_LIMIT ?? 20),
   origemCors: (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map((o) => o.trim()),
 }

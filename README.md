@@ -22,6 +22,9 @@ cadastro e login de usuários, cadastro e consulta de veículos, registro de loc
 - Catálogo de veículos com busca, categoria, filtro de disponibilidade, ordenação e paginação.
 - Registro de locação com escolha do veículo, datas e valor calculado no backend.
 - Histórico das locações do usuário (ativas e finalizadas) e finalização com registro da devolução.
+- Documentação interativa da API com Swagger em `/api/docs`.
+- Testes automatizados da API (Vitest + Supertest) em banco separado.
+- Proteções extras: cabeçalhos de segurança (helmet) e limite de tentativas de login.
 
 ## Modelo de dados
 
@@ -44,14 +47,17 @@ godrive/
       schema.prisma   modelos Usuario, Veiculo, Locacao e CodigoVerificacao
       migrations/     migrações do banco
       seed.ts         usuários e veículos iniciais
+    testes/           testes automatizados da API (Vitest + Supertest)
     src/
       server.ts       sobe o servidor
-      app.ts          Express, CORS, rotas e tratamento de erros
+      app.ts          Express, helmet, CORS, Swagger, rotas e tratamento de erros
       config.ts       variáveis de ambiente
       prisma.ts       cliente do Prisma
       erros.ts        ErroApp e middleware de erros
       formatar.ts     converte registros do banco para JSON
+      docs/openapi.ts documentação OpenAPI exibida pelo Swagger
       middlewares/autenticacao.ts   gera e valida o JWT (autenticar)
+      middlewares/limiteLogin.ts    limita tentativas de login (express-rate-limit)
       rotas/          mapeamento dos endpoints para os controllers
       controllers/    entrada e resposta HTTP (authController, veiculoController, locacaoController)
       services/       validações e regras de negócio (authService, veiculoService, locacaoService)
@@ -82,6 +88,9 @@ godrive/
   Sem login, a página inicial mostra o herói e um convite para entrar no lugar do catálogo.
 - **bcryptjs:** implementação do algoritmo bcrypt em JavaScript puro, com a mesma API e o mesmo
   formato de hash do pacote `bcrypt`, sem precisar compilar código nativo no Windows.
+- **Segurança extra (além do pedido):** `helmet` adiciona cabeçalhos HTTP de segurança e
+  `express-rate-limit` bloqueia o login por 15 minutos após várias senhas erradas seguidas
+  (padrão: 20, ajustável em `LOGIN_RATE_LIMIT`). Logins certos não contam.
 - **Senhas:** guardadas com bcrypt (`senhaHash`) e nunca devolvidas: as respostas passam por
   `formatarUsuario`, que expõe só id, nome, e-mail e papel.
 
@@ -115,6 +124,18 @@ npm run dev
 Abra `http://localhost:5173`. O Vite encaminha `/api` para o backend
 (para outra porta, use a variável `API_URL`, ex.: `API_URL=http://localhost:4000`).
 
+### Variáveis de ambiente (`backend/.env`)
+
+| Variável            | Para que serve                                         |
+| ------------------- | ------------------------------------------------------ |
+| `DATABASE_URL`      | Banco MySQL usado pela API                              |
+| `JWT_SECRET`        | Chave para assinar os tokens (troque por uma longa)     |
+| `JWT_EXPIRES_IN`    | Validade do token (padrão `1d`)                         |
+| `PORT`              | Porta da API (padrão 3333)                              |
+| `LOGIN_RATE_LIMIT`  | Tentativas de login erradas permitidas a cada 15 min    |
+| `CORS_ORIGIN`       | Endereço do frontend liberado no CORS                   |
+| `TEST_DATABASE_URL` | Banco separado usado pelos testes (precisa ter "test" no nome) |
+
 ### Usuários de teste (criados pelo seed)
 
 | Perfil        | E-mail                | Senha        |
@@ -132,6 +153,26 @@ O projeto não envia e-mails de verdade: **o código aparece no terminal do back
 ```
 [e-mail] Código de confirmação de e-mail para ana@exemplo.com: 482913
 ```
+
+## Documentação interativa (Swagger)
+
+Com a API rodando, abra **http://localhost:3333/api/docs** (ou `http://localhost:5173/api/docs`
+pelo frontend). Para testar rotas protegidas: execute `POST /auth/login`, copie o `token`,
+clique em **Authorize** e cole o token. Dá para demonstrar todas as rotas por ali na apresentação.
+
+## Testes automatizados
+
+```bash
+cd backend
+npm test
+```
+
+Os testes usam o banco de `TEST_DATABASE_URL` (padrão `godrive_test`, criado automaticamente pelo
+`prisma migrate deploy`) e apagam os dados dele a cada caso; por segurança, só rodam se o nome do
+banco tiver "test", então o banco `godrive` nunca é tocado. Cobrem: cadastro, confirmação e login
+sem expor o hash; 401 sem token; placa duplicada e diária negativa; filtro de disponíveis;
+cálculo do valor; datas inválidas; veículo inexistente; 5 locações simultâneas do mesmo carro
+(só 1 é aceita); locação de outro usuário (404); finalização e finalização repetida (409).
 
 ## Rotas da API
 
@@ -213,5 +254,6 @@ Erros voltam como `{ "erro": "mensagem" }` com o status HTTP adequado
 | raiz      | `npm run lint`      | ESLint do frontend                |
 | `backend` | `npm run build`     | Compila a API para `dist/`        |
 | `backend` | `npm start`         | Roda a API compilada              |
-| `backend` | `npm run db:seed`   | Roda o seed de novo               |
+| `backend` | `npm test`          | Roda os testes da API             |
+| `backend` | `npm run db:seed`   | Roda o seed de novo (adiciona os carros que faltarem) |
 | `backend` | `npm run db:reset`  | Apaga e recria o banco            |
