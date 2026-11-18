@@ -13,7 +13,7 @@ cadastro e login de usuários, cadastro e consulta de veículos, registro de loc
 | -------- | ---------------------------------------------------------------- |
 | Frontend | React 19, TypeScript, Vite (CSS próprio)                          |
 | Backend  | Node.js, Express 5, TypeScript, Prisma ORM, JWT, bcrypt (bcryptjs), Zod |
-| Banco    | MySQL (ou MariaDB, ex.: XAMPP)                                    |
+| Banco    | MySQL 5.7+ ou MariaDB 10.4+                                       |
 
 ## Funcionalidades
 
@@ -96,7 +96,9 @@ godrive/
 
 ## Como rodar
 
-Pré-requisitos: **Node.js 20+** e **MySQL** rodando (no XAMPP, basta iniciar o MySQL).
+Pré-requisitos: **Node.js 20+** e um servidor **MySQL 5.7+** ou **MariaDB 10.4+** rodando
+na porta 3306. Serve qualquer instalação: o servidor oficial, um pacote como XAMPP,
+WAMP ou Laragon, ou um contêiner Docker.
 
 ### 1. Backend
 
@@ -108,7 +110,10 @@ npm run db:migrate
 npm run dev
 ```
 
-Ajuste `DATABASE_URL` no `.env` se o seu MySQL tiver senha
+No Windows (cmd), use `copy .env.example .env` no lugar do `cp`.
+
+O `.env.example` usa o usuário `root` sem senha. Se o seu banco tiver outro usuário, senha
+ou porta, ajuste o `DATABASE_URL` no `.env`
 (formato `mysql://usuario:senha@localhost:3306/godrive`). O `db:migrate` cria o banco
 `godrive`, as tabelas e roda o seed. A API sobe em `http://localhost:3333/api`.
 
