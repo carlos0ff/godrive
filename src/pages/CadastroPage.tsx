@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { api, mensagemDeErro } from '../api'
 import { IconeCadeado, IconeEmail, IconeSeta, IconeUsuario } from '../components/Icones'
 import { CampoAuth, LayoutAuth } from '../components/LayoutAuth'
 
@@ -9,6 +10,7 @@ export function CadastroPage() {
   const [confirmacao, setConfirmacao] = useState('')
   const [aceite, setAceite] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
 
   function validar(): string | null {
     if (nome.trim().length < 3) return 'Informe seu nome completo.'
@@ -20,15 +22,23 @@ export function CadastroPage() {
     return null
   }
 
-  function enviar(evento: FormEvent<HTMLFormElement>) {
+  async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 
     const problema = validar()
 
     setErro(problema)
 
-    if (!problema) {
+    if (problema) return
+
+    setEnviando(true)
+
+    try {
+      await api.cadastrar(nome.trim(), email.trim(), senha)
       window.location.hash = `/confirmar-email?email=${encodeURIComponent(email.trim())}`
+    } catch (falha) {
+      setErro(mensagemDeErro(falha))
+      setEnviando(false)
     }
   }
 
@@ -107,8 +117,8 @@ export function CadastroPage() {
           </label>
         </div>
 
-        <button type="submit" className="login-entrar">
-          Criar conta
+        <button type="submit" className="login-entrar" disabled={enviando}>
+          {enviando ? 'Criando conta…' : 'Criar conta'}
           <IconeSeta width={16} height={16} />
         </button>
       </form>

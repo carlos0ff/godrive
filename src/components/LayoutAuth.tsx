@@ -12,8 +12,6 @@ interface LayoutProps {
   children: ReactNode
 }
 
-/* Tela de autenticação em duas colunas: painel verde da marca (com o carro
-   atravessando a divisa, como no Figma) e o conteúdo à direita. */
 export function LayoutAuth({
   eyebrow,
   titulo,
@@ -64,8 +62,6 @@ interface CampoProps extends InputHTMLAttributes<HTMLInputElement> {
   icone: ReactNode
 }
 
-/* Campo com rótulo em caixa alta e ícone à esquerda. Campos de senha ganham
-   o botão de mostrar/ocultar. */
 export function CampoAuth({ id, rotulo, icone, type = 'text', ...resto }: CampoProps) {
   const [mostrar, setMostrar] = useState(false)
   const ehSenha = type === 'password'

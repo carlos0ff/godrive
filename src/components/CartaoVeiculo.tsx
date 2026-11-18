@@ -26,7 +26,7 @@ export function CartaoVeiculo({ veiculo, aoReservar }: Props) {
       <div className={`veiculo-foto${imagemFalhou || !veiculo.imagemUrl ? ' sem-imagem' : ''}`}>
         {veiculo.imagemUrl && !imagemFalhou ? (
           <img
-            src={veiculo.imagemUrl}
+            src={veiculo.imagemUrl ?? undefined}
             alt={`${veiculo.marca} ${veiculo.modelo}`}
             loading="lazy"
             onError={() => setImagemFalhou(true)}
@@ -34,7 +34,7 @@ export function CartaoVeiculo({ veiculo, aoReservar }: Props) {
         ) : (
           <IlustracaoCarro
             categoria={veiculo.categoria}
-            cor={veiculo.cor}
+            cor={veiculo.cor ?? undefined}
             titulo={`${veiculo.marca} ${veiculo.modelo}`}
           />
         )}

@@ -1,17 +1,17 @@
-import { useState, type FormEvent } from 'react'
-import { EstadoVazio } from '../components/Estados'
+import { useMemo, useState, type FormEvent } from 'react'
+import { api, mensagemDeErro } from '../api'
+import { Carregando, EstadoErro, EstadoVazio } from '../components/Estados'
 import { IconeAgenda, IconeCarro } from '../components/Icones'
-import { VEICULOS } from '../catalogo'
+import type { Locacao, Veiculo } from '../types'
+import { useRecurso } from '../useRecurso'
 
 const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 
-/* Data de hoje no fuso local, no formato AAAA-MM-DD. */
 function hojeISO(): string {
   const agora = new Date()
   return new Date(agora.getTime() - agora.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
 }
 
-/* Número de diárias entre duas datas AAAA-MM-DD; 0 se inválido. */
 function contarDiarias(inicio: string, fim: string): number {
   const dias = Math.round(
     (new Date(`${fim}T12:00:00`).getTime() - new Date(`${inicio}T12:00:00`).getTime()) / 86_400_000,
@@ -19,30 +19,57 @@ function contarDiarias(inicio: string, fim: string): number {
   return dias > 0 ? dias : 0
 }
 
-const veiculos = VEICULOS.filter((veiculo) => veiculo.disponivel)
-
 export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) {
   const [veiculoId, setVeiculoId] = useState(veiculoInicial)
   const [retirada, setRetirada] = useState(hojeISO())
   const [devolucao, setDevolucao] = useState('')
   const [erro, setErro] = useState<string | null>(null)
-  const [confirmada, setConfirmada] = useState(false)
+  const [confirmada, setConfirmada] = useState<Locacao | null>(null)
+  const [enviando, setEnviando] = useState(false)
+  const {
+    dados: frota,
+    carregando,
+    erro: erroCarga,
+    recarregar,
+    alterarDados,
+  } = useRecurso(api.listarVeiculos, [] as Veiculo[])
 
-  const selecionado = veiculos.find((veiculo) => veiculo.id === veiculoId) ?? null
+  const veiculos = useMemo(() => frota.filter((veiculo) => veiculo.disponivel), [frota])
+
+  const selecionado = veiculos.find((veiculo) => String(veiculo.id) === veiculoId) ?? null
   const diarias = retirada && devolucao ? contarDiarias(retirada, devolucao) : 0
   const total = selecionado ? diarias * selecionado.precoDiaria : 0
 
-  function enviar(evento: FormEvent<HTMLFormElement>) {
+  async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 
     let problema: string | null = null
 
-    if (!veiculoId) problema = 'Escolha um veículo.'
+    if (!selecionado) problema = 'Escolha um veículo.'
     else if (!retirada || !devolucao) problema = 'Informe as datas de retirada e devolução.'
     else if (diarias < 1) problema = 'A devolução precisa ser pelo menos um dia depois da retirada.'
 
     setErro(problema)
-    setConfirmada(!problema)
+    setConfirmada(null)
+
+    if (problema || !selecionado) return
+
+    setEnviando(true)
+
+    try {
+      const locacao = await api.criarLocacao(selecionado.id, retirada, devolucao)
+
+      setConfirmada(locacao)
+      alterarDados((atuais) =>
+        atuais.map((veiculo) => (veiculo.id === locacao.veiculo.id ? { ...veiculo, disponivel: false } : veiculo)),
+      )
+      setVeiculoId('')
+      setDevolucao('')
+    } catch (falha) {
+      setErro(mensagemDeErro(falha))
+    } finally {
+      setEnviando(false)
+    }
   }
 
   return (
@@ -54,7 +81,18 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
           <p>Escolha o veículo, defina o período e confirme o valor.</p>
         </header>
 
-        {veiculos.length === 0 && (
+        {carregando && <Carregando texto="Carregando veículos…" />}
+
+        {!carregando && erroCarga && <EstadoErro mensagem={erroCarga} aoTentarNovamente={recarregar} />}
+
+        {confirmada && (
+          <p className="form-sucesso" role="status">
+            Locação de {confirmada.veiculo.marca} {confirmada.veiculo.modelo} confirmada:{' '}
+            {moeda.format(confirmada.valorTotal)}. <a href="#/locacoes">Ver minhas locações</a>
+          </p>
+        )}
+
+        {!carregando && !erroCarga && veiculos.length === 0 && (
           <EstadoVazio
             titulo="Nenhum veículo disponível"
             descricao="Toda a frota está locada no momento."
@@ -66,15 +104,8 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
           />
         )}
 
-        {veiculos.length > 0 && (
+        {!carregando && !erroCarga && veiculos.length > 0 && (
           <form onSubmit={enviar} noValidate>
-            {confirmada && selecionado && (
-              <p className="form-sucesso" role="status">
-                Reserva de {selecionado.marca} {selecionado.modelo} por {diarias} diária(s):{' '}
-                {moeda.format(total)}. Este app é só frontend: nada foi salvo.
-              </p>
-            )}
-
             {erro && (
               <p className="form-erro" role="alert">
                 {erro}
@@ -171,8 +202,8 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
                 Voltar ao catálogo
               </a>
 
-              <button type="submit" className="botao botao-primario">
-                Confirmar locação
+              <button type="submit" className="botao botao-primario" disabled={enviando}>
+                {enviando ? 'Confirmando…' : 'Confirmar locação'}
               </button>
             </div>
           </form>

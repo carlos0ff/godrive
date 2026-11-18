@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { api, mensagemDeErro } from '../api'
 import { IconeMais } from '../components/Icones'
 
 const CATEGORIAS = ['Sedã', 'Hatch', 'SUV', 'Picape', 'Minivan', 'Utilitário']
@@ -32,6 +33,7 @@ export function NovoVeiculoPage() {
   const [arquivo, setArquivo] = useState<{ nome: string; dados: string } | null>(null)
   const [erroArquivo, setErroArquivo] = useState<string | null>(null)
   const [chaveArquivo, setChaveArquivo] = useState(0)
+  const [enviando, setEnviando] = useState(false)
 
   const urlDigitada = form.imagemUrl.trim()
   const previa =
@@ -51,7 +53,6 @@ export function NovoVeiculoPage() {
     setForm((atual) => ({ ...atual, [campo.name]: valor }))
   }
 
-  /* Lê a imagem escolhida no navegador para mostrar a prévia; nada é enviado. */
   function escolherArquivo(evento: ChangeEvent<HTMLInputElement>) {
     const escolhido = evento.target.files?.[0]
 
@@ -103,22 +104,43 @@ export function NovoVeiculoPage() {
     return null
   }
 
-  function enviar(evento: FormEvent<HTMLFormElement>) {
+  async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 
     const problema = validar()
 
     setErro(problema)
+    setCadastrado(null)
 
-    if (problema) {
-      setCadastrado(null)
-      return
+    if (problema) return
+
+    setEnviando(true)
+
+    try {
+      const veiculo = await api.cadastrarVeiculo({
+        marca: form.marca.trim(),
+        modelo: form.modelo.trim(),
+        ano: Number(form.ano),
+        categoria: form.categoria,
+        placa: form.placa.trim().toUpperCase(),
+        cor: form.cor.trim() || null,
+        combustivel: form.combustivel,
+        lugares: Number(form.lugares),
+        quilometragem: Number(form.quilometragem),
+        precoDiaria: Number(form.precoDiaria),
+        disponivel: form.disponivel,
+        imagemUrl: (origemImagem === 'url' ? form.imagemUrl.trim() : arquivo?.dados) || null,
+      })
+
+      setCadastrado(`${veiculo.marca} ${veiculo.modelo} (${veiculo.placa})`)
+      setForm(INICIAL)
+      setArquivo(null)
+      setChaveArquivo((n) => n + 1)
+    } catch (falha) {
+      setErro(mensagemDeErro(falha))
+    } finally {
+      setEnviando(false)
     }
-
-    setCadastrado(`${form.marca.trim()} ${form.modelo.trim()}`)
-    setForm(INICIAL)
-    setArquivo(null)
-    setChaveArquivo((n) => n + 1)
   }
 
   return (
@@ -127,13 +149,13 @@ export function NovoVeiculoPage() {
         <header className="form-cabecalho">
           <span className="eyebrow">Administração</span>
           <h1>Cadastrar veículo</h1>
-          <p>Preencha os dados do veículo. Este app é só frontend: nada é salvo.</p>
+          <p>Preencha os dados do veículo para incluí-lo no catálogo.</p>
         </header>
 
         <form onSubmit={enviar} noValidate>
           {cadastrado && (
             <p className="form-sucesso" role="status">
-              {cadastrado}: dados válidos. Sem backend, o veículo não foi salvo.
+              {cadastrado} cadastrado com sucesso. <a href="#/veiculos">Ver no catálogo</a>
             </p>
           )}
 
@@ -362,9 +384,9 @@ export function NovoVeiculoPage() {
               Cancelar
             </a>
 
-            <button type="submit" className="botao botao-primario">
+            <button type="submit" className="botao botao-primario" disabled={enviando}>
               <IconeMais width={16} height={16} />
-              Cadastrar veículo
+              {enviando ? 'Cadastrando…' : 'Cadastrar veículo'}
             </button>
           </div>
         </form>

@@ -1,5 +1,3 @@
-/* Conjunto de ícones em SVG inline: o projeto não carrega Font Awesome,
-   então cada ícone usado na interface é definido aqui. */
 import type { SVGProps } from 'react'
 
 type Props = SVGProps<SVGSVGElement>

@@ -1,11 +1,13 @@
-import { EstadoVazio } from '../components/Estados'
-import { IconeAgenda } from '../components/Icones'
-import { LOCACOES } from '../catalogo'
+import { useState } from 'react'
+import { api, mensagemDeErro } from '../api'
+import { Carregando, EstadoErro, EstadoVazio } from '../components/Estados'
+import { IconeAgenda, IconeCheck } from '../components/Icones'
+import type { Locacao } from '../types'
+import { useRecurso } from '../useRecurso'
 
 const ROTULO_STATUS: Record<string, string> = {
   ativa: 'Ativa',
   finalizada: 'Finalizada',
-  cancelada: 'Cancelada',
 }
 
 const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -15,11 +17,36 @@ function formatarData(iso: string) {
 }
 
 export function LocacoesPage() {
-  const locacoes = LOCACOES
+  const {
+    dados: locacoes,
+    carregando,
+    erro,
+    recarregar,
+    alterarDados,
+  } = useRecurso(api.listarLocacoes, [] as Locacao[])
+  const [erroAcao, setErroAcao] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
+  const [devolvendo, setDevolvendo] = useState<number | null>(null)
+
+  async function devolver(locacao: Locacao) {
+    setDevolvendo(locacao.id)
+    setErroAcao(null)
+    setAviso(null)
+
+    try {
+      const atualizada = await api.devolverLocacao(locacao.id)
+
+      alterarDados((atuais) => atuais.map((item) => (item.id === atualizada.id ? atualizada : item)))
+      setAviso(`Devolução de ${atualizada.veiculo.marca} ${atualizada.veiculo.modelo} registrada.`)
+    } catch (falha) {
+      setErroAcao(mensagemDeErro(falha))
+    } finally {
+      setDevolvendo(null)
+    }
+  }
+
   const ativas = locacoes.filter((locacao) => locacao.status === 'ativa').length
-  const totalGasto = locacoes
-    .filter((locacao) => locacao.status !== 'cancelada')
-    .reduce((soma, locacao) => soma + locacao.valorTotal, 0)
+  const totalGasto = locacoes.reduce((soma, locacao) => soma + locacao.valorTotal, 0)
 
   return (
     <section className="container">
@@ -27,9 +54,7 @@ export function LocacoesPage() {
         <div>
           <span className="eyebrow">Histórico</span>
           <h1>Minhas locações</h1>
-          <p className="secao-subtitulo">
-            Exemplo de histórico. Este app é só frontend: as reservas não são salvas.
-          </p>
+          <p className="secao-subtitulo">Acompanhe suas reservas e registre a devolução dos veículos.</p>
         </div>
 
         <a href="#/locacoes/nova" className="botao botao-primario">
@@ -38,7 +63,23 @@ export function LocacoesPage() {
         </a>
       </div>
 
-      {locacoes.length > 0 && (
+      {aviso && (
+        <p className="form-sucesso" role="status">
+          {aviso}
+        </p>
+      )}
+
+      {erroAcao && (
+        <p className="form-erro" role="alert">
+          {erroAcao}
+        </p>
+      )}
+
+      {carregando && <Carregando texto="Carregando locações…" />}
+
+      {!carregando && erro && <EstadoErro mensagem={erro} aoTentarNovamente={recarregar} />}
+
+      {!carregando && !erro && locacoes.length > 0 && (
         <div className="resumo-cards">
           <div>
             <small>Locações</small>
@@ -57,8 +98,7 @@ export function LocacoesPage() {
         </div>
       )}
 
-
-      {locacoes.length === 0 && (
+      {!carregando && !erro && locacoes.length === 0 && (
         <EstadoVazio
           titulo="Você ainda não tem locações"
           descricao="Escolha um veículo no catálogo para fazer a primeira reserva."
@@ -70,7 +110,7 @@ export function LocacoesPage() {
         />
       )}
 
-      {locacoes.length > 0 && (
+      {!carregando && !erro && locacoes.length > 0 && (
         <ul className="lista-locacoes">
           {locacoes.map((locacao) => (
             <li key={locacao.id} className="locacao">
@@ -104,7 +144,19 @@ export function LocacoesPage() {
               </span>
 
               <div className="locacao-acao">
-                <span className="locacao-encerrada">{locacao.status === 'ativa' ? 'Em andamento' : 'Encerrada'}</span>
+                {locacao.status === 'ativa' ? (
+                  <button
+                    type="button"
+                    className="botao botao-secundario"
+                    disabled={devolvendo === locacao.id}
+                    onClick={() => devolver(locacao)}
+                  >
+                    <IconeCheck width={15} height={15} />
+                    {devolvendo === locacao.id ? 'Registrando…' : 'Registrar devolução'}
+                  </button>
+                ) : (
+                  <span className="locacao-encerrada">Encerrada</span>
+                )}
               </div>
             </li>
           ))}

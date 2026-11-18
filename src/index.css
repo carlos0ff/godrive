@@ -1,9 +1,4 @@
-/* Base global do goDrive.
-   Substitui o CSS residual do template Vite (#root com largura fixa,
-   text-align:center, border-inline, h1 de 56px e tema escuro automático). */
-
 :root {
-  /* Identidade visual Localiza */
   --green: #00954b;
   --green-dark: #00763b;
   --green-soft: #eaf6ee;
@@ -38,7 +33,6 @@ html,
 body {
   margin: 0;
   padding: 0;
-  /* Impede que qualquer elemento force rolagem horizontal pela largura da viewport. */
   max-width: 100%;
 }
 
@@ -49,7 +43,6 @@ body {
 }
 
 #root {
-  /* Sem largura fixa: o #root ocupa a tela e a largura máxima fica nos containers. */
   width: 100%;
   min-height: 100vh;
   display: flex;

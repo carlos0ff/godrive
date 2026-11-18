@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { EstadoVazio } from '../components/Estados'
+import { api } from '../api'
+import { Carregando, EstadoErro, EstadoVazio } from '../components/Estados'
 import { CartaoVeiculo } from '../components/CartaoVeiculo'
 import {
   IconeEscudo,
@@ -7,8 +8,9 @@ import {
   IconeSetaBaixo,
   IconeSuporte,
 } from '../components/Icones'
-import { VEICULOS } from '../catalogo'
 import type { Veiculo } from '../types'
+import { useSessao } from '../sessao'
+import { useRecurso } from '../useRecurso'
 
 const POR_PAGINA = 6
 
@@ -25,10 +27,6 @@ const COMPARAR: Record<string, (a: Veiculo, b: Veiculo) => number> = {
   'mais-novos': (a, b) => b.ano - a.ano,
 }
 
-const CATEGORIAS = [...new Set(VEICULOS.map((v) => v.categoria))].sort((a, b) =>
-  a.localeCompare(b, 'pt-BR'),
-)
-
 function reservar(veiculo: Veiculo) {
   window.location.hash = `/locacoes/nova?veiculo=${encodeURIComponent(veiculo.id)}`
 }
@@ -38,13 +36,18 @@ interface Props {
   mostrarHero: boolean
 }
 
-export function CatalogoPage({ busca, mostrarHero }: Props) {
+function ListaVeiculos({ busca }: { busca: string }) {
   const [categoria, setCategoria] = useState('')
   const [somenteDisponiveis, setSomenteDisponiveis] = useState(true)
   const [ordenar, setOrdenar] = useState('recomendados')
   const [pagina, setPagina] = useState(1)
+  const { dados: veiculos, carregando, erro, recarregar } = useRecurso(api.listarVeiculos, [] as Veiculo[])
 
-  /* Trocar um filtro volta para a primeira página. */
+  const categorias = useMemo(
+    () => [...new Set(veiculos.map((v) => v.categoria))].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [veiculos],
+  )
+
   const filtros = `${busca}|${categoria}|${somenteDisponiveis}|${ordenar}`
   const [filtrosAnteriores, setFiltrosAnteriores] = useState(filtros)
 
@@ -56,7 +59,7 @@ export function CatalogoPage({ busca, mostrarHero }: Props) {
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase()
 
-    const lista = VEICULOS.filter((v) => {
+    const lista = veiculos.filter((v) => {
       if (termo && !`${v.marca} ${v.modelo}`.toLowerCase().includes(termo)) return false
       if (categoria && v.categoria !== categoria) return false
       if (somenteDisponiveis && !v.disponivel) return false
@@ -66,11 +69,148 @@ export function CatalogoPage({ busca, mostrarHero }: Props) {
     const comparar = COMPARAR[ordenar]
 
     return comparar ? [...lista].sort(comparar) : lista
-  }, [busca, categoria, somenteDisponiveis, ordenar])
+  }, [veiculos, busca, categoria, somenteDisponiveis, ordenar])
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA))
   const itens = filtrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
 
+  return (
+    <section className="container" id="catalogo">
+      <div className="secao-topo">
+        <div>
+          <span className="eyebrow">Escolha o seu</span>
+          <h2>Carros disponíveis</h2>
+          <p className="secao-subtitulo">
+            {busca
+              ? `Resultados para “${busca}”.`
+              : 'Encontre o modelo que combina com o seu caminho.'}
+          </p>
+        </div>
+
+        <span className="pilula-estoque">
+          <i aria-hidden="true" />
+          Disponibilidade atualizada
+        </span>
+      </div>
+
+      <div className="ferramentas">
+        <div className="abas" role="tablist" aria-label="Categorias">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={categoria === ''}
+            className={`aba${categoria === '' ? ' ativa' : ''}`}
+            onClick={() => setCategoria('')}
+          >
+            Todos
+          </button>
+
+          {categorias.map((nome) => (
+            <button
+              key={nome}
+              type="button"
+              role="tab"
+              aria-selected={categoria === nome}
+              className={`aba${categoria === nome ? ' ativa' : ''}`}
+              onClick={() => setCategoria(nome)}
+            >
+              {nome}
+            </button>
+          ))}
+        </div>
+
+        <div className="controles">
+          <span className="contagem">
+            <strong>{filtrados.length}</strong> veículos
+          </span>
+
+          <label className="alternador" htmlFor="filtro-disponiveis">
+            <input
+              id="filtro-disponiveis"
+              type="checkbox"
+              checked={somenteDisponiveis}
+              onChange={(evento) => setSomenteDisponiveis(evento.target.checked)}
+            />
+            Somente disponíveis
+          </label>
+
+          <label className="sr-only" htmlFor="filtro-ordenar">
+            Ordenação
+          </label>
+
+          <select
+            id="filtro-ordenar"
+            className="seletor"
+            value={ordenar}
+            onChange={(evento) => setOrdenar(evento.target.value)}
+          >
+            {ORDENACOES.map((opcao) => (
+              <option key={opcao.valor} value={opcao.valor}>
+                {opcao.rotulo}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {carregando && <Carregando texto="Carregando veículos…" />}
+
+      {!carregando && erro && <EstadoErro mensagem={erro} aoTentarNovamente={recarregar} />}
+
+      {!carregando && !erro && itens.length === 0 && (
+        <EstadoVazio
+          titulo="Nenhum veículo encontrado"
+          descricao="Ajuste a busca ou os filtros para ver outras opções."
+        />
+      )}
+
+      {!carregando && !erro && itens.length > 0 && (
+        <div className="grade-veiculos">
+          {itens.map((veiculo) => (
+            <CartaoVeiculo key={veiculo.id} veiculo={veiculo} aoReservar={reservar} />
+          ))}
+        </div>
+      )}
+
+      {totalPaginas > 1 && (
+        <nav className="paginacao" aria-label="Paginação">
+          <button
+            type="button"
+            className="pagina-btn"
+            disabled={pagina <= 1}
+            onClick={() => setPagina((atual) => Math.max(1, atual - 1))}
+          >
+            ‹ Anterior
+          </button>
+
+          {Array.from({ length: totalPaginas }, (_, indice) => indice + 1).map((numero) => (
+            <button
+              key={numero}
+              type="button"
+              className={`pagina-btn${numero === pagina ? ' ativa' : ''}`}
+              aria-current={numero === pagina ? 'page' : undefined}
+              onClick={() => setPagina(numero)}
+            >
+              {numero}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            className="pagina-btn"
+            disabled={pagina >= totalPaginas}
+            onClick={() => setPagina((atual) => Math.min(totalPaginas, atual + 1))}
+          >
+            Próximo ›
+          </button>
+        </nav>
+      )}
+    </section>
+  )
+}
+
+export function CatalogoPage({ busca, mostrarHero }: Props) {
+  const { autenticado } = useSessao()
 
   return (
     <>
@@ -142,133 +282,29 @@ export function CatalogoPage({ busca, mostrarHero }: Props) {
         </section>
       )}
 
-      <section className="container" id="catalogo">
-        <div className="secao-topo">
-          <div>
-            <span className="eyebrow">Escolha o seu</span>
-            <h2>Carros disponíveis</h2>
-            <p className="secao-subtitulo">
-              {busca
-                ? `Resultados para “${busca}”.`
-                : 'Encontre o modelo que combina com o seu caminho.'}
-            </p>
+      {autenticado ? (
+        <ListaVeiculos busca={busca} />
+      ) : (
+        <section className="container" id="catalogo">
+          <div className="secao-topo">
+            <div>
+              <span className="eyebrow">Escolha o seu</span>
+              <h2>Carros disponíveis</h2>
+              <p className="secao-subtitulo">Entre na sua conta para ver a frota e reservar.</p>
+            </div>
           </div>
 
-          <span className="pilula-estoque">
-            <i aria-hidden="true" />
-            Disponibilidade atualizada
-          </span>
-        </div>
-
-        <div className="ferramentas">
-          <div className="abas" role="tablist" aria-label="Categorias">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={categoria === ''}
-              className={`aba${categoria === '' ? ' ativa' : ''}`}
-              onClick={() => setCategoria('')}
-            >
-              Todos
-            </button>
-
-            {CATEGORIAS.map((nome) => (
-              <button
-                key={nome}
-                type="button"
-                role="tab"
-                aria-selected={categoria === nome}
-                className={`aba${categoria === nome ? ' ativa' : ''}`}
-                onClick={() => setCategoria(nome)}
-              >
-                {nome}
-              </button>
-            ))}
-          </div>
-
-          <div className="controles">
-            <span className="contagem">
-              <strong>{filtrados.length}</strong> veículos
-            </span>
-
-            <label className="alternador" htmlFor="filtro-disponiveis">
-              <input
-                id="filtro-disponiveis"
-                type="checkbox"
-                checked={somenteDisponiveis}
-                onChange={(evento) => setSomenteDisponiveis(evento.target.checked)}
-              />
-              Somente disponíveis
-            </label>
-
-            <label className="sr-only" htmlFor="filtro-ordenar">
-              Ordenação
-            </label>
-
-            <select
-              id="filtro-ordenar"
-              className="seletor"
-              value={ordenar}
-              onChange={(evento) => setOrdenar(evento.target.value)}
-            >
-              {ORDENACOES.map((opcao) => (
-                <option key={opcao.valor} value={opcao.valor}>
-                  {opcao.rotulo}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {itens.length === 0 && (
           <EstadoVazio
-            titulo="Nenhum veículo encontrado"
-            descricao="Ajuste a busca ou os filtros para ver outras opções."
+            titulo="Entre para ver os veículos"
+            descricao="O catálogo e as reservas ficam disponíveis para usuários autenticados."
+            acao={
+              <a href="#/login?volta=%2Fveiculos" className="botao botao-primario">
+                Entrar na conta
+              </a>
+            }
           />
-        )}
-
-        {itens.length > 0 && (
-          <div className="grade-veiculos">
-            {itens.map((veiculo) => (
-              <CartaoVeiculo key={veiculo.id} veiculo={veiculo} aoReservar={reservar} />
-            ))}
-          </div>
-        )}
-
-        {totalPaginas > 1 && (
-          <nav className="paginacao" aria-label="Paginação">
-            <button
-              type="button"
-              className="pagina-btn"
-              disabled={pagina <= 1}
-              onClick={() => setPagina((atual) => Math.max(1, atual - 1))}
-            >
-              ‹ Anterior
-            </button>
-
-            {Array.from({ length: totalPaginas }, (_, indice) => indice + 1).map((numero) => (
-              <button
-                key={numero}
-                type="button"
-                className={`pagina-btn${numero === pagina ? ' ativa' : ''}`}
-                aria-current={numero === pagina ? 'page' : undefined}
-                onClick={() => setPagina(numero)}
-              >
-                {numero}
-              </button>
-            ))}
-
-            <button
-              type="button"
-              className="pagina-btn"
-              disabled={pagina >= totalPaginas}
-              onClick={() => setPagina((atual) => Math.min(totalPaginas, atual + 1))}
-            >
-              Próximo ›
-            </button>
-          </nav>
-        )}
-      </section>
+        </section>
+      )}
     </>
   )
 }

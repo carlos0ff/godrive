@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from 'react'
+import { api, mensagemDeErro } from '../api'
 import { IconeEmail, IconeSeta } from '../components/Icones'
 import { CampoAuth, LayoutAuth } from '../components/LayoutAuth'
 
 export function RecuperarPage() {
   const [email, setEmail] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
 
-  function enviar(evento: FormEvent<HTMLFormElement>) {
+  async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -15,7 +17,15 @@ export function RecuperarPage() {
     }
 
     setErro(null)
-    window.location.hash = `/confirmar-email?email=${encodeURIComponent(email.trim())}&origem=recuperar`
+    setEnviando(true)
+
+    try {
+      await api.recuperarSenha(email.trim())
+      window.location.hash = `/confirmar-email?email=${encodeURIComponent(email.trim())}&origem=recuperar`
+    } catch (falha) {
+      setErro(mensagemDeErro(falha))
+      setEnviando(false)
+    }
   }
 
   return (
@@ -45,8 +55,8 @@ export function RecuperarPage() {
           onChange={(evento) => setEmail(evento.target.value)}
         />
 
-        <button type="submit" className="login-entrar">
-          Enviar código
+        <button type="submit" className="login-entrar" disabled={enviando}>
+          {enviando ? 'Enviando…' : 'Enviar código'}
           <IconeSeta width={16} height={16} />
         </button>
       </form>
