@@ -12,6 +12,9 @@ function obrigatoria(nome: string): string {
 
 export const config = {
   porta: Number(process.env.PORT ?? 3333),
+  host: process.env.HOST ?? '0.0.0.0',
+  confiarProxy: process.env.TRUST_PROXY === 'true',
+  caminhoPublicoApi: process.env.API_PUBLIC_PATH ?? '/api',
   jwtSegredo: obrigatoria('JWT_SECRET'),
   jwtExpiracao: process.env.JWT_EXPIRES_IN ?? '1d',
   limiteTentativasLogin: Number(process.env.LOGIN_RATE_LIMIT ?? 20),

@@ -1,3 +1,5 @@
+import { config } from '../config.js'
+
 const erro = (descricao: string) => ({
   description: descricao,
   content: { 'application/json': { schema: { $ref: '#/components/schemas/Erro' } } },
@@ -23,7 +25,7 @@ export const documentoOpenApi = {
     description:
       'API REST do sistema de locação de veículos. Faça login em POST /auth/login, copie o token e clique em Authorize.',
   },
-  servers: [{ url: '/api' }],
+  servers: [{ url: config.caminhoPublicoApi }],
   tags: [{ name: 'Autenticação' }, { name: 'Veículos' }, { name: 'Locações' }],
   components: {
     securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } },

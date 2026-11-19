@@ -1,5 +1,6 @@
 import { useState, type InputHTMLAttributes, type ReactNode } from 'react'
 import logoGoDrive from '../assets/godrive.png'
+import { caminhoPublico } from '../caminho'
 import { IconeOlho, IconeOlhoFechado } from './Icones'
 
 interface LayoutProps {
@@ -34,7 +35,7 @@ export function LayoutAuth({
           <small>{subtitulo}</small>
         </div>
 
-        <img className="login-carro" src={carro.src} alt={carro.alt} width={420} height={227} />
+        <img className="login-carro" src={caminhoPublico(carro.src)} alt={carro.alt} width={420} height={227} />
       </aside>
 
       <main className="login-conteudo">

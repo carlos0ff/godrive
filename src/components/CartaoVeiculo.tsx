@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { caminhoPublico } from '../caminho'
 import type { Veiculo } from '../types'
 import { IlustracaoCarro } from './IlustracaoCarro'
 import {
@@ -26,7 +27,7 @@ export function CartaoVeiculo({ veiculo, aoReservar }: Props) {
       <div className={`veiculo-foto${imagemFalhou || !veiculo.imagemUrl ? ' sem-imagem' : ''}`}>
         {veiculo.imagemUrl && !imagemFalhou ? (
           <img
-            src={veiculo.imagemUrl ?? undefined}
+            src={caminhoPublico(veiculo.imagemUrl)}
             alt={`${veiculo.marca} ${veiculo.modelo}`}
             loading="lazy"
             onError={() => setImagemFalhou(true)}

@@ -8,6 +8,7 @@ import {
   IconeSetaBaixo,
   IconeSuporte,
 } from '../components/Icones'
+import { caminhoPublico } from '../caminho'
 import type { Veiculo } from '../types'
 import { useSessao } from '../sessao'
 import { useRecurso } from '../useRecurso'
@@ -242,7 +243,7 @@ export function CatalogoPage({ busca, mostrarHero }: Props) {
             <div className="hero-arte">
               <img
                 className="hero-img"
-                src="/veiculos/PEUA.png"
+                src={caminhoPublico('/veiculos/PEUA.png')}
                 alt="Peugeot 208 azul"
                 width={420}
                 height={227}

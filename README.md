@@ -358,6 +358,9 @@ TEST_DATABASE_URL="mysql://USUARIO:SENHA@localhost:3306/godrive_test"
 | `LOGIN_RATE_LIMIT` | Tentativas de login permitidas a cada 15 minutos |
 | `CORS_ORIGIN` | Origem do frontend autorizada a chamar a API |
 | `TEST_DATABASE_URL` | Banco usado somente pelos testes (precisa ter "test" no nome) |
+| `HOST` | Interface em que a API escuta (`127.0.0.1` atrás de proxy) |
+| `TRUST_PROXY` | `true` quando há nginx na frente, para o limite de login usar o IP real |
+| `API_PUBLIC_PATH` | Caminho público da API, usado pelo Swagger (ex.: `/projeto/demo/godrive/api`) |
 
 O arquivo `.env` real está no `.gitignore` e não deve ser versionado.
 
@@ -398,6 +401,14 @@ npm run dev
 ```
 
 Acesse `http://localhost:5173`. O Vite encaminha as chamadas de `/api` para `http://localhost:3333` (configurado em `vite.config.ts`). Se a API estiver em outro endereço, defina `API_URL` antes de `npm run dev` ou `VITE_API_URL` no build.
+
+Para publicar em um subcaminho, gere o build com `VITE_BASE` e `VITE_API_URL`:
+
+```bash
+VITE_BASE=/projeto/demo/godrive/ VITE_API_URL=/projeto/demo/godrive/api npm run build
+```
+
+A versão de demonstração está em **https://carlos0ff.dev/projeto/demo/godrive/** (nginx servindo o `dist/` e encaminhando `/api/` para a API em um serviço systemd).
 
 ## Exemplos de utilização
 

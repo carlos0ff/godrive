@@ -11,6 +11,8 @@ import { rotasVeiculos } from './rotas/veiculos.js'
 
 export const app = express()
 
+if (config.confiarProxy) app.set('trust proxy', 1)
+
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(documentoOpenApi))
 
 app.use(helmet())
