@@ -7,63 +7,36 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Papel {
-  ADMIN
-  CLIENTE
-}
-
 enum StatusLocacao {
   ATIVA
   FINALIZADA
 }
 
-enum FinalidadeCodigo {
-  CONFIRMAR_EMAIL
-  RECUPERAR_SENHA
-}
-
 model Usuario {
-  id              Int       @id @default(autoincrement())
-  nome            String    @db.VarChar(120)
-  email           String    @unique @db.VarChar(160)
-  senhaHash       String    @db.VarChar(100)
-  papel           Papel     @default(CLIENTE)
-  emailConfirmado Boolean   @default(false)
-  criadoEm        DateTime  @default(now())
-  atualizadoEm    DateTime  @updatedAt
-  locacoes        Locacao[]
-  codigos         CodigoVerificacao[]
+  id           Int       @id @default(autoincrement())
+  nome         String    @db.VarChar(120)
+  email        String    @unique @db.VarChar(160)
+  senhaHash    String    @db.VarChar(100)
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  locacoes     Locacao[]
 
   @@map("usuarios")
-}
-
-model CodigoVerificacao {
-  id         Int              @id @default(autoincrement())
-  usuarioId  Int
-  codigo     String           @db.Char(6)
-  finalidade FinalidadeCodigo
-  expiraEm   DateTime
-  usadoEm    DateTime?
-  criadoEm   DateTime         @default(now())
-  usuario    Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-
-  @@index([usuarioId, finalidade])
-  @@map("codigos_verificacao")
 }
 
 model Veiculo {
   id            Int       @id @default(autoincrement())
   marca         String    @db.VarChar(60)
   modelo        String    @db.VarChar(60)
-  ano           Int
-  categoria     String    @db.VarChar(30)
   placa         String    @unique @db.VarChar(8)
+  ano           Int
+  valorDiaria   Decimal   @db.Decimal(10, 2)
+  disponivel    Boolean   @default(true)
+  categoria     String    @db.VarChar(30)
   cor           String?   @db.VarChar(30)
   combustivel   String?   @db.VarChar(20)
   lugares       Int       @default(5)
   quilometragem Int       @default(0)
-  precoDiaria   Decimal   @db.Decimal(10, 2)
-  disponivel    Boolean   @default(true)
   imagemUrl     String?   @db.LongText
   criadoEm      DateTime  @default(now())
   atualizadoEm  DateTime  @updatedAt
@@ -73,21 +46,21 @@ model Veiculo {
 }
 
 model Locacao {
-  id            Int           @id @default(autoincrement())
-  usuarioId     Int
-  veiculoId     Int
-  dataRetirada  DateTime      @db.Date
-  dataDevolucao DateTime      @db.Date
-  devolvidoEm   DateTime?
-  valorDiaria   Decimal       @db.Decimal(10, 2)
-  valorTotal    Decimal       @db.Decimal(10, 2)
-  status        StatusLocacao @default(ATIVA)
-  criadoEm      DateTime      @default(now())
-  atualizadoEm  DateTime      @updatedAt
-  usuario       Usuario       @relation(fields: [usuarioId], references: [id])
-  veiculo       Veiculo       @relation(fields: [veiculoId], references: [id])
+  id                    Int           @id @default(autoincrement())
+  usuarioId             Int
+  veiculoId             Int
+  dataInicio            DateTime
+  dataPrevistaDevolucao DateTime
+  dataDevolucao         DateTime?
+  valorDiaria           Decimal       @db.Decimal(10, 2)
+  valorTotal            Decimal       @db.Decimal(10, 2)
+  status                StatusLocacao @default(ATIVA)
+  criadoEm              DateTime      @default(now())
+  atualizadoEm          DateTime      @updatedAt
+  usuario               Usuario       @relation(fields: [usuarioId], references: [id])
+  veiculo               Veiculo       @relation(fields: [veiculoId], references: [id])
 
   @@index([usuarioId])
-  @@index([veiculoId])
+  @@index([veiculoId, status])
   @@map("locacoes")
 }

@@ -5,15 +5,68 @@ import { IconeAgenda, IconeCheck } from '../components/Icones'
 import type { Locacao } from '../types'
 import { useRecurso } from '../useRecurso'
 
-const ROTULO_STATUS: Record<string, string> = {
-  ativa: 'Ativa',
-  finalizada: 'Finalizada',
+const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+const dataHora = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+
+function formatar(iso: string | null) {
+  return iso ? dataHora.format(new Date(iso)) : '—'
 }
 
-const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+function ItemLocacao({
+  locacao,
+  finalizando,
+  aoFinalizar,
+}: {
+  locacao: Locacao
+  finalizando: boolean
+  aoFinalizar: (locacao: Locacao) => void
+}) {
+  const ativa = locacao.status === 'ATIVA'
 
-function formatarData(iso: string) {
-  return new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR')
+  return (
+    <li className="locacao">
+      <div className="locacao-veiculo">
+        <strong>
+          {locacao.veiculo.marca} {locacao.veiculo.modelo}
+        </strong>
+        <span>
+          {locacao.veiculo.categoria} · {locacao.veiculo.placa}
+        </span>
+      </div>
+
+      <div className="locacao-periodo">
+        <small>{ativa ? 'Início → devolução prevista' : 'Início → devolução'}</small>
+        <span>
+          {formatar(locacao.dataInicio)} → {formatar(ativa ? locacao.dataPrevistaDevolucao : locacao.dataDevolucao)}
+        </span>
+        {!ativa && <small>Prevista: {formatar(locacao.dataPrevistaDevolucao)}</small>}
+      </div>
+
+      <div className="locacao-valor">
+        <small>Valor total</small>
+        <strong>{moeda.format(locacao.valorTotal)}</strong>
+        <small>{moeda.format(locacao.valorDiaria)}/dia</small>
+      </div>
+
+      <span className={`status status-${ativa ? 'ativa' : 'finalizada'}`}>{ativa ? 'Ativa' : 'Finalizada'}</span>
+
+      <div className="locacao-acao">
+        {ativa ? (
+          <button
+            type="button"
+            className="botao botao-secundario"
+            disabled={finalizando}
+            onClick={() => aoFinalizar(locacao)}
+          >
+            <IconeCheck width={15} height={15} />
+            {finalizando ? 'Finalizando…' : 'Finalizar locação'}
+          </button>
+        ) : (
+          <span className="locacao-encerrada">Devolvido</span>
+        )}
+      </div>
+    </li>
+  )
 }
 
 export function LocacoesPage() {
@@ -26,26 +79,30 @@ export function LocacoesPage() {
   } = useRecurso(api.listarLocacoes, [] as Locacao[])
   const [erroAcao, setErroAcao] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
-  const [devolvendo, setDevolvendo] = useState<number | null>(null)
+  const [finalizando, setFinalizando] = useState<number | null>(null)
 
-  async function devolver(locacao: Locacao) {
-    setDevolvendo(locacao.id)
+  async function finalizar(locacao: Locacao) {
+    setFinalizando(locacao.id)
     setErroAcao(null)
     setAviso(null)
 
     try {
-      const atualizada = await api.devolverLocacao(locacao.id)
+      const atualizada = await api.finalizarLocacao(locacao.id)
 
       alterarDados((atuais) => atuais.map((item) => (item.id === atualizada.id ? atualizada : item)))
-      setAviso(`Devolução de ${atualizada.veiculo.marca} ${atualizada.veiculo.modelo} registrada.`)
+      setAviso(
+        `Locação de ${atualizada.veiculo.marca} ${atualizada.veiculo.modelo} finalizada em ${formatar(atualizada.dataDevolucao)}. O veículo está disponível novamente.`,
+      )
     } catch (falha) {
       setErroAcao(mensagemDeErro(falha))
+      recarregar()
     } finally {
-      setDevolvendo(null)
+      setFinalizando(null)
     }
   }
 
-  const ativas = locacoes.filter((locacao) => locacao.status === 'ativa').length
+  const ativas = locacoes.filter((locacao) => locacao.status === 'ATIVA')
+  const finalizadas = locacoes.filter((locacao) => locacao.status === 'FINALIZADA')
   const totalGasto = locacoes.reduce((soma, locacao) => soma + locacao.valorTotal, 0)
 
   return (
@@ -54,7 +111,7 @@ export function LocacoesPage() {
         <div>
           <span className="eyebrow">Histórico</span>
           <h1>Minhas locações</h1>
-          <p className="secao-subtitulo">Acompanhe suas reservas e registre a devolução dos veículos.</p>
+          <p className="secao-subtitulo">Acompanhe suas locações ativas, finalize as devoluções e consulte o histórico.</p>
         </div>
 
         <a href="#/locacoes/nova" className="botao botao-primario">
@@ -88,7 +145,7 @@ export function LocacoesPage() {
 
           <div>
             <small>Ativas</small>
-            <strong>{ativas}</strong>
+            <strong>{ativas.length}</strong>
           </div>
 
           <div>
@@ -111,56 +168,36 @@ export function LocacoesPage() {
       )}
 
       {!carregando && !erro && locacoes.length > 0 && (
-        <ul className="lista-locacoes">
-          {locacoes.map((locacao) => (
-            <li key={locacao.id} className="locacao">
-              <div className="locacao-veiculo">
-                <strong>
-                  {locacao.veiculo
-                    ? `${locacao.veiculo.marca} ${locacao.veiculo.modelo}`
-                    : 'Veículo'}
-                </strong>
+        <>
+          <h2 className="locacoes-titulo">Ativas ({ativas.length})</h2>
 
-                <span>
-                  {locacao.veiculo?.categoria}
-                  {locacao.veiculo?.placa ? ` · ${locacao.veiculo.placa}` : ''}
-                </span>
-              </div>
+          {ativas.length === 0 ? (
+            <p className="locacoes-vazio">Nenhuma locação ativa no momento.</p>
+          ) : (
+            <ul className="lista-locacoes">
+              {ativas.map((locacao) => (
+                <ItemLocacao
+                  key={locacao.id}
+                  locacao={locacao}
+                  finalizando={finalizando === locacao.id}
+                  aoFinalizar={finalizar}
+                />
+              ))}
+            </ul>
+          )}
 
-              <div className="locacao-periodo">
-                <small>Período</small>
-                <span>
-                  {formatarData(locacao.dataRetirada)} → {formatarData(locacao.dataDevolucao)}
-                </span>
-              </div>
+          <h2 className="locacoes-titulo">Histórico de locações finalizadas ({finalizadas.length})</h2>
 
-              <div className="locacao-valor">
-                <small>Valor total</small>
-                <strong>{moeda.format(locacao.valorTotal)}</strong>
-              </div>
-
-              <span className={`status status-${locacao.status}`}>
-                {ROTULO_STATUS[locacao.status] ?? locacao.status}
-              </span>
-
-              <div className="locacao-acao">
-                {locacao.status === 'ativa' ? (
-                  <button
-                    type="button"
-                    className="botao botao-secundario"
-                    disabled={devolvendo === locacao.id}
-                    onClick={() => devolver(locacao)}
-                  >
-                    <IconeCheck width={15} height={15} />
-                    {devolvendo === locacao.id ? 'Registrando…' : 'Registrar devolução'}
-                  </button>
-                ) : (
-                  <span className="locacao-encerrada">Encerrada</span>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+          {finalizadas.length === 0 ? (
+            <p className="locacoes-vazio">Nenhuma locação finalizada ainda.</p>
+          ) : (
+            <ul className="lista-locacoes">
+              {finalizadas.map((locacao) => (
+                <ItemLocacao key={locacao.id} locacao={locacao} finalizando={false} aoFinalizar={finalizar} />
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </section>
   )

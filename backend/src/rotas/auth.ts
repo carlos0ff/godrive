@@ -5,11 +5,6 @@ import { limitarTentativasLogin } from '../middlewares/limiteLogin.js'
 
 export const rotasAuth = Router()
 
-rotasAuth.post('/cadastro', authController.cadastrar)
-rotasAuth.post('/confirmar-email', authController.confirmarEmail)
-rotasAuth.post('/reenviar-codigo', authController.reenviarCodigo)
+rotasAuth.post('/register', authController.cadastrar)
 rotasAuth.post('/login', limitarTentativasLogin, authController.login)
-rotasAuth.post('/recuperar', authController.recuperarSenha)
-rotasAuth.post('/verificar-codigo', authController.verificarCodigo)
-rotasAuth.post('/redefinir-senha', authController.redefinirSenha)
-rotasAuth.get('/perfil', autenticar, authController.perfil)
+rotasAuth.get('/me', autenticar, authController.perfil)

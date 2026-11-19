@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { api, mensagemDeErro } from '../api'
 import { Carregando, EstadoErro, EstadoVazio } from '../components/Estados'
 import { IconeAgenda, IconeCarro } from '../components/Icones'
@@ -6,39 +6,44 @@ import type { Locacao, Veiculo } from '../types'
 import { useRecurso } from '../useRecurso'
 
 const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+const dataHora = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+const MS_POR_DIA = 24 * 60 * 60 * 1000
 
-function hojeISO(): string {
-  const agora = new Date()
-  return new Date(agora.getTime() - agora.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
+function paraCampo(data: Date): string {
+  return new Date(data.getTime() - data.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
+}
+
+function proximaHora(): string {
+  const data = new Date()
+
+  data.setHours(data.getHours() + 1, 0, 0, 0)
+
+  return paraCampo(data)
 }
 
 function contarDiarias(inicio: string, fim: string): number {
-  const dias = Math.round(
-    (new Date(`${fim}T12:00:00`).getTime() - new Date(`${inicio}T12:00:00`).getTime()) / 86_400_000,
-  )
-  return dias > 0 ? dias : 0
+  const diferenca = new Date(fim).getTime() - new Date(inicio).getTime()
+
+  return diferenca > 0 ? Math.ceil(diferenca / MS_POR_DIA) : 0
 }
 
 export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) {
   const [veiculoId, setVeiculoId] = useState(veiculoInicial)
-  const [retirada, setRetirada] = useState(hojeISO())
+  const [inicio, setInicio] = useState(proximaHora)
   const [devolucao, setDevolucao] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [confirmada, setConfirmada] = useState<Locacao | null>(null)
   const [enviando, setEnviando] = useState(false)
   const {
-    dados: frota,
+    dados: veiculos,
     carregando,
     erro: erroCarga,
     recarregar,
-    alterarDados,
-  } = useRecurso(api.listarVeiculos, [] as Veiculo[])
-
-  const veiculos = useMemo(() => frota.filter((veiculo) => veiculo.disponivel), [frota])
+  } = useRecurso(api.listarVeiculosDisponiveis, [] as Veiculo[])
 
   const selecionado = veiculos.find((veiculo) => String(veiculo.id) === veiculoId) ?? null
-  const diarias = retirada && devolucao ? contarDiarias(retirada, devolucao) : 0
-  const total = selecionado ? diarias * selecionado.precoDiaria : 0
+  const diarias = inicio && devolucao ? contarDiarias(inicio, devolucao) : 0
+  const total = selecionado ? diarias * selecionado.valorDiaria : 0
 
   async function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -46,8 +51,8 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
     let problema: string | null = null
 
     if (!selecionado) problema = 'Escolha um veículo.'
-    else if (!retirada || !devolucao) problema = 'Informe as datas de retirada e devolução.'
-    else if (diarias < 1) problema = 'A devolução precisa ser pelo menos um dia depois da retirada.'
+    else if (!inicio || !devolucao) problema = 'Informe a data de início e a data prevista de devolução.'
+    else if (diarias < 1) problema = 'A data prevista de devolução deve ser posterior à data de início.'
 
     setErro(problema)
     setConfirmada(null)
@@ -57,16 +62,19 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
     setEnviando(true)
 
     try {
-      const locacao = await api.criarLocacao(selecionado.id, retirada, devolucao)
+      const locacao = await api.criarLocacao(
+        selecionado.id,
+        new Date(inicio).toISOString(),
+        new Date(devolucao).toISOString(),
+      )
 
       setConfirmada(locacao)
-      alterarDados((atuais) =>
-        atuais.map((veiculo) => (veiculo.id === locacao.veiculo.id ? { ...veiculo, disponivel: false } : veiculo)),
-      )
       setVeiculoId('')
       setDevolucao('')
+      recarregar()
     } catch (falha) {
       setErro(mensagemDeErro(falha))
+      recarregar()
     } finally {
       setEnviando(false)
     }
@@ -87,8 +95,12 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
 
         {confirmada && (
           <p className="form-sucesso" role="status">
-            Locação de {confirmada.veiculo.marca} {confirmada.veiculo.modelo} confirmada:{' '}
-            {moeda.format(confirmada.valorTotal)}. <a href="#/locacoes">Ver minhas locações</a>
+            <span>
+              Locação de {confirmada.veiculo.marca} {confirmada.veiculo.modelo} registrada de{' '}
+              {dataHora.format(new Date(confirmada.dataInicio))} a{' '}
+              {dataHora.format(new Date(confirmada.dataPrevistaDevolucao))}. Valor calculado pelo sistema:{' '}
+              <strong>{moeda.format(confirmada.valorTotal)}</strong>. <a href="#/locacoes">Ver minhas locações</a>
+            </span>
           </p>
         )}
 
@@ -125,31 +137,30 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
                 {veiculos.map((veiculo) => (
                   <option key={veiculo.id} value={veiculo.id}>
                     {veiculo.marca} {veiculo.modelo} · {veiculo.ano} ·{' '}
-                    {moeda.format(veiculo.precoDiaria)}/dia
+                    {moeda.format(veiculo.valorDiaria)}/dia
                   </option>
                 ))}
               </select>
             </label>
 
             <div className="campo-linha">
-              <label className="campo" htmlFor="locacao-retirada">
-                <span>Data de retirada</span>
+              <label className="campo" htmlFor="locacao-inicio">
+                <span>Data de início</span>
                 <input
-                  id="locacao-retirada"
-                  type="date"
-                  min={hojeISO()}
-                  value={retirada}
-                  onChange={(evento) => setRetirada(evento.target.value)}
+                  id="locacao-inicio"
+                  type="datetime-local"
+                  value={inicio}
+                  onChange={(evento) => setInicio(evento.target.value)}
                   required
                 />
               </label>
 
               <label className="campo" htmlFor="locacao-devolucao">
-                <span>Data de devolução</span>
+                <span>Data prevista de devolução</span>
                 <input
                   id="locacao-devolucao"
-                  type="date"
-                  min={retirada || hojeISO()}
+                  type="datetime-local"
+                  min={inicio}
                   value={devolucao}
                   onChange={(evento) => setDevolucao(evento.target.value)}
                   required
@@ -178,7 +189,7 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
 
                 <div>
                   <dt>Diária</dt>
-                  <dd>{selecionado ? moeda.format(selecionado.precoDiaria) : '—'}</dd>
+                  <dd>{selecionado ? moeda.format(selecionado.valorDiaria) : '—'}</dd>
                 </div>
 
                 <div>
@@ -193,7 +204,7 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
               </dl>
 
               <p className="resumo-nota">
-                Valor estimado pelo número de diárias.
+                Cada fração de 24 horas conta como uma diária completa. O valor final é calculado pelo sistema ao confirmar.
               </p>
             </div>
 

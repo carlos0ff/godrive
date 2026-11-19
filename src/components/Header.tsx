@@ -31,7 +31,7 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
   const [contaAberta, setContaAberta] = useState(false)
   const [caminhoAnterior, setCaminhoAnterior] = useState(caminho)
   const conta = useRef<HTMLDivElement>(null)
-  const { usuario, autenticado, ehAdmin } = useSessao()
+  const { usuario, autenticado } = useSessao()
 
   if (buscaDaUrl !== buscaAnterior) {
     setBuscaAnterior(buscaDaUrl)
@@ -167,7 +167,6 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
                   <p className="account-menu-head">
                     <strong>{usuario.nome}</strong>
                     <span>{usuario.email}</span>
-                    {ehAdmin && <em className="tag-admin">Administrador</em>}
                   </p>
 
                   <a href="#/locacoes" role="menuitem">

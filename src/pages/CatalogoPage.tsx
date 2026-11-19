@@ -22,8 +22,8 @@ const ORDENACOES = [
 ]
 
 const COMPARAR: Record<string, (a: Veiculo, b: Veiculo) => number> = {
-  'menor-preco': (a, b) => a.precoDiaria - b.precoDiaria,
-  'maior-preco': (a, b) => b.precoDiaria - a.precoDiaria,
+  'menor-preco': (a, b) => a.valorDiaria - b.valorDiaria,
+  'maior-preco': (a, b) => b.valorDiaria - a.valorDiaria,
   'mais-novos': (a, b) => b.ano - a.ano,
 }
 
@@ -41,7 +41,10 @@ function ListaVeiculos({ busca }: { busca: string }) {
   const [somenteDisponiveis, setSomenteDisponiveis] = useState(true)
   const [ordenar, setOrdenar] = useState('recomendados')
   const [pagina, setPagina] = useState(1)
-  const { dados: veiculos, carregando, erro, recarregar } = useRecurso(api.listarVeiculos, [] as Veiculo[])
+  const { dados: veiculos, carregando, erro, recarregar } = useRecurso(
+    somenteDisponiveis ? api.listarVeiculosDisponiveis : api.listarVeiculos,
+    [] as Veiculo[],
+  )
 
   const categorias = useMemo(
     () => [...new Set(veiculos.map((v) => v.categoria))].sort((a, b) => a.localeCompare(b, 'pt-BR')),
@@ -62,14 +65,13 @@ function ListaVeiculos({ busca }: { busca: string }) {
     const lista = veiculos.filter((v) => {
       if (termo && !`${v.marca} ${v.modelo}`.toLowerCase().includes(termo)) return false
       if (categoria && v.categoria !== categoria) return false
-      if (somenteDisponiveis && !v.disponivel) return false
       return true
     })
 
     const comparar = COMPARAR[ordenar]
 
     return comparar ? [...lista].sort(comparar) : lista
-  }, [veiculos, busca, categoria, somenteDisponiveis, ordenar])
+  }, [veiculos, busca, categoria, ordenar])
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA))
   const itens = filtrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)

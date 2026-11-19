@@ -73,6 +73,5 @@ export function useSessao() {
   return {
     usuario: sessao?.usuario ?? null,
     autenticado: Boolean(sessao),
-    ehAdmin: sessao?.usuario.papel === 'ADMIN',
   }
 }

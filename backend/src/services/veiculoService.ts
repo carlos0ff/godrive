@@ -33,9 +33,10 @@ const esquemaCadastro = z.object({
   combustivel: textoOpcional,
   lugares: z.coerce.number().int().min(1).max(9).default(5),
   quilometragem: z.coerce.number().int().min(0, 'A quilometragem não pode ser negativa.').default(0),
-  precoDiaria: z.coerce
-    .number({ invalid_type_error: 'Informe o valor da diária.' })
-    .positive('O valor da diária precisa ser positivo.'),
+  valorDiaria: z.coerce
+    .number({ required_error: 'Informe o valor da diária.', invalid_type_error: 'Informe o valor da diária.' })
+    .positive('O valor da diária precisa ser positivo.')
+    .max(99_999_999.99, 'Valor da diária muito alto.'),
   disponivel: z.boolean().default(true),
   imagemUrl: z
     .string()
@@ -55,8 +56,6 @@ const esquemaFiltro = z.object({
   disponivel: z.enum(['true', 'false']).optional(),
 })
 
-const esquemaId = z.coerce.number().int().positive('Identificador inválido.')
-
 export const veiculoService = {
   async listar(consulta: unknown) {
     const filtro = esquemaFiltro.parse(consulta)
@@ -71,12 +70,10 @@ export const veiculoService = {
     return veiculos.map(formatarVeiculo)
   },
 
-  async buscar(idInformado: unknown) {
-    const veiculo = await prisma.veiculo.findUnique({ where: { id: esquemaId.parse(idInformado) } })
+  async listarDisponiveis() {
+    const veiculos = await prisma.veiculo.findMany({ where: { disponivel: true }, orderBy: { id: 'asc' } })
 
-    if (!veiculo) throw new ErroApp(404, 'Veículo não encontrado.')
-
-    return formatarVeiculo(veiculo)
+    return veiculos.map(formatarVeiculo)
   },
 
   async cadastrar(entrada: unknown) {

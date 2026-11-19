@@ -7,6 +7,5 @@ export const rotasLocacoes = Router()
 rotasLocacoes.use(autenticar)
 
 rotasLocacoes.get('/', locacaoController.listar)
-rotasLocacoes.get('/:id', locacaoController.buscar)
 rotasLocacoes.post('/', locacaoController.registrar)
-rotasLocacoes.patch('/:id/devolucao', locacaoController.finalizar)
+rotasLocacoes.patch('/:id/finalizar', locacaoController.finalizar)

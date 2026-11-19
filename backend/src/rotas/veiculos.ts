@@ -7,5 +7,5 @@ export const rotasVeiculos = Router()
 rotasVeiculos.use(autenticar)
 
 rotasVeiculos.get('/', veiculoController.listar)
-rotasVeiculos.get('/:id', veiculoController.buscar)
+rotasVeiculos.get('/disponiveis', veiculoController.listarDisponiveis)
 rotasVeiculos.post('/', veiculoController.cadastrar)

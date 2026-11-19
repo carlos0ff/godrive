@@ -3,18 +3,14 @@ import { locacaoService } from '../services/locacaoService.js'
 
 export const locacaoController = {
   async listar(req: Request, res: Response) {
-    res.json(await locacaoService.listar(req.usuario!.id, req.query))
-  },
-
-  async buscar(req: Request, res: Response) {
-    res.json(await locacaoService.buscar(req.usuario!.id, req.params.id))
+    res.json(await locacaoService.listar(req.usuarioId!, req.query))
   },
 
   async registrar(req: Request, res: Response) {
-    res.status(201).json(await locacaoService.registrar(req.usuario!.id, req.body))
+    res.status(201).json(await locacaoService.registrar(req.usuarioId!, req.body))
   },
 
   async finalizar(req: Request, res: Response) {
-    res.json(await locacaoService.finalizar(req.usuario!.id, req.params.id, req.body))
+    res.json(await locacaoService.finalizar(req.usuarioId!, req.params.id))
   },
 }

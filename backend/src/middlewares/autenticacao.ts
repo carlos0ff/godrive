@@ -1,23 +1,17 @@
 import type { RequestHandler } from 'express'
 import jwt from 'jsonwebtoken'
-import type { Papel } from '@prisma/client'
 import { config } from '../config.js'
 import { ErroApp } from '../erros.js'
 
-export interface UsuarioToken {
-  id: number
-  papel: Papel
-}
-
 declare module 'express-serve-static-core' {
   interface Request {
-    usuario?: UsuarioToken
+    usuarioId?: number
   }
 }
 
-export function gerarToken(usuario: UsuarioToken): string {
-  return jwt.sign({ papel: usuario.papel }, config.jwtSegredo, {
-    subject: String(usuario.id),
+export function gerarToken(usuarioId: number): string {
+  return jwt.sign({}, config.jwtSegredo, {
+    subject: String(usuarioId),
     expiresIn: config.jwtExpiracao as jwt.SignOptions['expiresIn'],
   })
 }
@@ -25,14 +19,17 @@ export function gerarToken(usuario: UsuarioToken): string {
 export const autenticar: RequestHandler = (req, _res, next) => {
   const [tipo, token] = (req.headers.authorization ?? '').split(' ')
 
-  if (tipo !== 'Bearer' || !token) throw new ErroApp(401, 'Faça login para continuar.')
+  if (tipo !== 'Bearer' || !token) throw new ErroApp(401, 'Token não informado. Envie Authorization: Bearer <token>.')
 
   try {
     const dados = jwt.verify(token, config.jwtSegredo) as jwt.JwtPayload
+    const usuarioId = Number(dados.sub)
 
-    req.usuario = { id: Number(dados.sub), papel: dados.papel as Papel }
+    if (!Number.isInteger(usuarioId) || usuarioId <= 0) throw new Error()
+
+    req.usuarioId = usuarioId
   } catch {
-    throw new ErroApp(401, 'Sessão inválida ou expirada. Entre novamente.')
+    throw new ErroApp(401, 'Token inválido ou expirado. Faça login novamente.')
   }
 
   next()

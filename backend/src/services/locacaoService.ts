@@ -2,51 +2,49 @@ import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '../prisma.js'
 import { ErroApp } from '../erros.js'
-import { dataISO, formatarLocacao } from '../formatar.js'
+import { formatarLocacao } from '../formatar.js'
 
-const data = (rotulo: string) =>
+const MS_POR_DIA = 24 * 60 * 60 * 1000
+const TOLERANCIA_INICIO_MS = 5 * 60 * 1000
+
+const dataHora = (rotulo: string) =>
   z
-    .string({ required_error: `Informe a data de ${rotulo}.` })
-    .regex(/^\d{4}-\d{2}-\d{2}$/, `A data de ${rotulo} deve estar no formato AAAA-MM-DD.`)
-    .refine((valor) => !Number.isNaN(Date.parse(`${valor}T00:00:00Z`)), `Data de ${rotulo} inválida.`)
+    .string({ required_error: `Informe a ${rotulo}.`, invalid_type_error: `Informe a ${rotulo}.` })
+    .trim()
+    .min(1, `Informe a ${rotulo}.`)
+    .transform((valor, contexto) => {
+      const data = new Date(valor)
+
+      if (Number.isNaN(data.getTime())) {
+        contexto.addIssue({ code: z.ZodIssueCode.custom, message: `A ${rotulo} é inválida. Use o formato ISO 8601.` })
+        return z.NEVER
+      }
+
+      return data
+    })
 
 const esquemaRegistro = z.object({
-  veiculoId: z.coerce.number({ invalid_type_error: 'Escolha um veículo.' }).int().positive('Escolha um veículo.'),
-  dataRetirada: data('retirada'),
-  dataDevolucao: data('devolução'),
-})
-
-const esquemaFinalizacao = z.object({
-  quilometragem: z.coerce.number().int().min(0, 'A quilometragem não pode ser negativa.').optional(),
+  veiculoId: z.coerce
+    .number({ required_error: 'Escolha um veículo.', invalid_type_error: 'Escolha um veículo.' })
+    .int('Escolha um veículo.')
+    .positive('Escolha um veículo.'),
+  dataInicio: dataHora('data de início'),
+  dataPrevistaDevolucao: dataHora('data prevista de devolução'),
 })
 
 const esquemaFiltro = z.object({
-  status: z.enum(['ativa', 'finalizada']).optional(),
+  status: z.enum(['ATIVA', 'FINALIZADA'], { errorMap: () => ({ message: 'Status deve ser ATIVA ou FINALIZADA.' }) }).optional(),
 })
 
-const esquemaId = z.coerce.number().int().positive('Identificador inválido.')
+const esquemaId = z.coerce
+  .number({ invalid_type_error: 'Identificador inválido.' })
+  .int('Identificador inválido.')
+  .positive('Identificador inválido.')
 
 const incluirVeiculo = { veiculo: true } satisfies Prisma.LocacaoInclude
 
-function hojeLocal(): string {
-  const agora = new Date()
-
-  return dataISO(new Date(agora.getTime() - agora.getTimezoneOffset() * 60_000))
-}
-
-function contarDiarias(inicio: string, fim: string): number {
-  const horas = (Date.parse(`${fim}T00:00:00Z`) - Date.parse(`${inicio}T00:00:00Z`)) / 3_600_000
-
-  return Math.ceil(horas / 24)
-}
-
-async function buscarDoUsuario(usuarioId: number, idInformado: unknown) {
-  const id = esquemaId.parse(idInformado)
-  const locacao = await prisma.locacao.findFirst({ where: { id, usuarioId }, include: incluirVeiculo })
-
-  if (!locacao) throw new ErroApp(404, 'Locação não encontrada.')
-
-  return locacao
+export function calcularDiarias(inicio: Date, fim: Date): number {
+  return Math.ceil((fim.getTime() - inicio.getTime()) / MS_POR_DIA)
 }
 
 export const locacaoService = {
@@ -54,10 +52,7 @@ export const locacaoService = {
     const filtro = esquemaFiltro.parse(consulta)
 
     const locacoes = await prisma.locacao.findMany({
-      where: {
-        usuarioId,
-        status: filtro.status ? (filtro.status.toUpperCase() as 'ATIVA' | 'FINALIZADA') : undefined,
-      },
+      where: { usuarioId, status: filtro.status },
       include: incluirVeiculo,
       orderBy: { criadoEm: 'desc' },
     })
@@ -65,18 +60,16 @@ export const locacaoService = {
     return locacoes.map(formatarLocacao)
   },
 
-  async buscar(usuarioId: number, id: unknown) {
-    return formatarLocacao(await buscarDoUsuario(usuarioId, id))
-  },
-
   async registrar(usuarioId: number, entrada: unknown) {
     const dados = esquemaRegistro.parse(entrada)
 
-    if (dados.dataRetirada < hojeLocal()) throw new ErroApp(400, 'A retirada não pode ser em uma data passada.')
+    if (dados.dataInicio.getTime() < Date.now() - TOLERANCIA_INICIO_MS)
+      throw new ErroApp(400, 'A data de início não pode estar no passado.')
 
-    const diarias = contarDiarias(dados.dataRetirada, dados.dataDevolucao)
+    if (dados.dataPrevistaDevolucao <= dados.dataInicio)
+      throw new ErroApp(400, 'A data prevista de devolução deve ser posterior à data de início.')
 
-    if (diarias < 1) throw new ErroApp(400, 'A devolução precisa ser depois da data de retirada.')
+    const diarias = calcularDiarias(dados.dataInicio, dados.dataPrevistaDevolucao)
 
     const locacao = await prisma.$transaction(async (tx) => {
       const veiculo = await tx.veiculo.findUnique({ where: { id: dados.veiculoId } })
@@ -90,14 +83,18 @@ export const locacaoService = {
 
       if (reservado.count === 0) throw new ErroApp(409, 'Este veículo não está disponível para locação.')
 
+      const ativas = await tx.locacao.count({ where: { veiculoId: veiculo.id, status: 'ATIVA' } })
+
+      if (ativas > 0) throw new ErroApp(409, 'Este veículo já possui uma locação ativa.')
+
       return tx.locacao.create({
         data: {
           usuarioId,
           veiculoId: veiculo.id,
-          dataRetirada: new Date(`${dados.dataRetirada}T00:00:00Z`),
-          dataDevolucao: new Date(`${dados.dataDevolucao}T00:00:00Z`),
-          valorDiaria: veiculo.precoDiaria,
-          valorTotal: veiculo.precoDiaria.mul(diarias),
+          dataInicio: dados.dataInicio,
+          dataPrevistaDevolucao: dados.dataPrevistaDevolucao,
+          valorDiaria: veiculo.valorDiaria,
+          valorTotal: veiculo.valorDiaria.mul(diarias),
         },
         include: incluirVeiculo,
       })
@@ -106,31 +103,26 @@ export const locacaoService = {
     return formatarLocacao(locacao)
   },
 
-  async finalizar(usuarioId: number, id: unknown, entrada: unknown) {
-    const dados = esquemaFinalizacao.parse(entrada ?? {})
-    const locacao = await buscarDoUsuario(usuarioId, id)
+  async finalizar(usuarioId: number, idInformado: unknown) {
+    const id = esquemaId.parse(idInformado)
 
-    if (locacao.status !== 'ATIVA') throw new ErroApp(409, 'Esta locação já foi finalizada.')
+    const locacao = await prisma.$transaction(async (tx) => {
+      const existente = await tx.locacao.findFirst({ where: { id, usuarioId } })
 
-    if (dados.quilometragem !== undefined && dados.quilometragem < locacao.veiculo.quilometragem)
-      throw new ErroApp(400, 'A quilometragem de devolução não pode ser menor que a atual do veículo.')
+      if (!existente) throw new ErroApp(404, 'Locação não encontrada.')
 
-    const finalizada = await prisma.$transaction(async (tx) => {
       const encerrada = await tx.locacao.updateMany({
-        where: { id: locacao.id, status: 'ATIVA' },
-        data: { status: 'FINALIZADA', devolvidoEm: new Date() },
+        where: { id: existente.id, status: 'ATIVA' },
+        data: { status: 'FINALIZADA', dataDevolucao: new Date() },
       })
 
       if (encerrada.count === 0) throw new ErroApp(409, 'Esta locação já foi finalizada.')
 
-      await tx.veiculo.update({
-        where: { id: locacao.veiculoId },
-        data: { disponivel: true, quilometragem: dados.quilometragem },
-      })
+      await tx.veiculo.update({ where: { id: existente.veiculoId }, data: { disponivel: true } })
 
-      return tx.locacao.findUniqueOrThrow({ where: { id: locacao.id }, include: incluirVeiculo })
+      return tx.locacao.findUniqueOrThrow({ where: { id: existente.id }, include: incluirVeiculo })
     })
 
-    return formatarLocacao(finalizada)
+    return formatarLocacao(locacao)
   },
 }

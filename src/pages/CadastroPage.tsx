@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { api, mensagemDeErro } from '../api'
 import { IconeCadeado, IconeEmail, IconeSeta, IconeUsuario } from '../components/Icones'
 import { CampoAuth, LayoutAuth } from '../components/LayoutAuth'
+import { iniciarSessao } from '../sessao'
 
 export function CadastroPage() {
   const [nome, setNome] = useState('')
@@ -35,7 +36,8 @@ export function CadastroPage() {
 
     try {
       await api.cadastrar(nome.trim(), email.trim(), senha)
-      window.location.hash = `/confirmar-email?email=${encodeURIComponent(email.trim())}`
+      iniciarSessao(await api.login(email.trim(), senha), false)
+      window.location.hash = '/veiculos'
     } catch (falha) {
       setErro(mensagemDeErro(falha))
       setEnviando(false)

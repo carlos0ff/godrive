@@ -92,7 +92,7 @@ export function CartaoVeiculo({ veiculo, aoReservar }: Props) {
         <div className="veiculo-rodape">
           <p className="preco">
             <small>A partir de</small>
-            <strong>{moeda.format(veiculo.precoDiaria)}</strong>
+            <strong>{moeda.format(veiculo.valorDiaria)}</strong>
             <span>/ dia</span>
           </p>
 

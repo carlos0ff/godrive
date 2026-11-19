@@ -15,7 +15,7 @@ const INICIAL = {
   combustivel: COMBUSTIVEIS[0],
   lugares: '5',
   quilometragem: '0',
-  precoDiaria: '',
+  valorDiaria: '',
   imagemUrl: '',
   disponivel: true,
 }
@@ -92,7 +92,7 @@ export function NovoVeiculoPage() {
     if (!Number.isInteger(ano) || ano < 1950 || ano > new Date().getFullYear() + 1)
       return 'Informe um ano válido.'
 
-    if (!(Number(form.precoDiaria) > 0)) return 'Informe o valor da diária.'
+    if (!(Number(form.valorDiaria) > 0)) return 'Informe o valor da diária.'
 
     const url = form.imagemUrl.trim()
 
@@ -127,7 +127,7 @@ export function NovoVeiculoPage() {
         combustivel: form.combustivel,
         lugares: Number(form.lugares),
         quilometragem: Number(form.quilometragem),
-        precoDiaria: Number(form.precoDiaria),
+        valorDiaria: Number(form.valorDiaria),
         disponivel: form.disponivel,
         imagemUrl: (origemImagem === 'url' ? form.imagemUrl.trim() : arquivo?.dados) || null,
       })
@@ -147,7 +147,7 @@ export function NovoVeiculoPage() {
     <section className="container pagina-media">
       <div className="cartao-form">
         <header className="form-cabecalho">
-          <span className="eyebrow">Administração</span>
+          <span className="eyebrow">Frota</span>
           <h1>Cadastrar veículo</h1>
           <p>Preencha os dados do veículo para incluí-lo no catálogo.</p>
         </header>
@@ -155,7 +155,9 @@ export function NovoVeiculoPage() {
         <form onSubmit={enviar} noValidate>
           {cadastrado && (
             <p className="form-sucesso" role="status">
-              {cadastrado} cadastrado com sucesso. <a href="#/veiculos">Ver no catálogo</a>
+              <span>
+                {cadastrado} cadastrado com sucesso. <a href="#/veiculos">Ver no catálogo</a>
+              </span>
             </p>
           )}
 
@@ -295,11 +297,11 @@ export function NovoVeiculoPage() {
               <span>Diária (R$)</span>
               <input
                 id="veiculo-preco"
-                name="precoDiaria"
+                name="valorDiaria"
                 type="number"
                 min={1}
                 step="0.01"
-                value={form.precoDiaria}
+                value={form.valorDiaria}
                 onChange={alterar}
                 placeholder="149,90"
                 required

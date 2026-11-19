@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { api, ErroApi, mensagemDeErro } from '../api'
+import { api, mensagemDeErro } from '../api'
 import { IconeCadeado, IconeEmail, IconeSeta } from '../components/Icones'
 import { CampoAuth, LayoutAuth } from '../components/LayoutAuth'
 import { iniciarSessao } from '../sessao'
@@ -31,12 +31,6 @@ export function LoginPage({ volta }: { volta: string }) {
       iniciarSessao(sessao, lembrar)
       window.location.hash = volta.startsWith('/') ? volta : '/'
     } catch (falha) {
-      if (falha instanceof ErroApi && falha.status === 403) {
-        await api.reenviarCodigo(email.trim(), 'CONFIRMAR_EMAIL').catch(() => null)
-        window.location.hash = `/confirmar-email?email=${encodeURIComponent(email.trim())}`
-        return
-      }
-
       setErro(mensagemDeErro(falha))
       setEnviando(false)
     }
@@ -90,10 +84,6 @@ export function LoginPage({ volta }: { volta: string }) {
             />
             Lembrar-me
           </label>
-
-          <a className="login-link" href="#/recuperar">
-            Esqueceu a senha?
-          </a>
         </div>
 
         <button type="submit" className="login-entrar" disabled={enviando}>

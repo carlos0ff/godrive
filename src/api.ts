@@ -48,43 +48,24 @@ export function mensagemDeErro(erro: unknown): string {
   return erro instanceof Error ? erro.message : 'Algo deu errado. Tente novamente.'
 }
 
-type Finalidade = 'CONFIRMAR_EMAIL' | 'RECUPERAR_SENHA'
-
 export const api = {
   login: (email: string, senha: string) =>
     requisitar<Sessao>('/auth/login', { metodo: 'POST', corpo: { email, senha } }),
 
   cadastrar: (nome: string, email: string, senha: string) =>
-    requisitar<{ mensagem: string }>('/auth/cadastro', { metodo: 'POST', corpo: { nome, email, senha } }),
-
-  confirmarEmail: (email: string, codigo: string) =>
-    requisitar<{ mensagem: string }>('/auth/confirmar-email', { metodo: 'POST', corpo: { email, codigo } }),
-
-  reenviarCodigo: (email: string, finalidade: Finalidade) =>
-    requisitar<{ mensagem: string }>('/auth/reenviar-codigo', { metodo: 'POST', corpo: { email, finalidade } }),
-
-  recuperarSenha: (email: string) =>
-    requisitar<{ mensagem: string }>('/auth/recuperar', { metodo: 'POST', corpo: { email } }),
-
-  verificarCodigo: (email: string, codigo: string, finalidade: Finalidade) =>
-    requisitar<{ valido: boolean }>('/auth/verificar-codigo', {
-      metodo: 'POST',
-      corpo: { email, codigo, finalidade },
-    }),
-
-  redefinirSenha: (email: string, codigo: string, senha: string) =>
-    requisitar<{ mensagem: string }>('/auth/redefinir-senha', { metodo: 'POST', corpo: { email, codigo, senha } }),
+    requisitar<{ mensagem: string }>('/auth/register', { metodo: 'POST', corpo: { nome, email, senha } }),
 
   listarVeiculos: () => requisitar<Veiculo[]>('/veiculos'),
+
+  listarVeiculosDisponiveis: () => requisitar<Veiculo[]>('/veiculos/disponiveis'),
 
   cadastrarVeiculo: (veiculo: NovoVeiculo) =>
     requisitar<Veiculo>('/veiculos', { metodo: 'POST', corpo: veiculo }),
 
   listarLocacoes: () => requisitar<Locacao[]>('/locacoes'),
 
-  criarLocacao: (veiculoId: number, dataRetirada: string, dataDevolucao: string) =>
-    requisitar<Locacao>('/locacoes', { metodo: 'POST', corpo: { veiculoId, dataRetirada, dataDevolucao } }),
+  criarLocacao: (veiculoId: number, dataInicio: string, dataPrevistaDevolucao: string) =>
+    requisitar<Locacao>('/locacoes', { metodo: 'POST', corpo: { veiculoId, dataInicio, dataPrevistaDevolucao } }),
 
-  devolverLocacao: (id: number) =>
-    requisitar<Locacao>(`/locacoes/${id}/devolucao`, { metodo: 'PATCH', corpo: {} }),
+  finalizarLocacao: (id: number) => requisitar<Locacao>(`/locacoes/${id}/finalizar`, { metodo: 'PATCH' }),
 }

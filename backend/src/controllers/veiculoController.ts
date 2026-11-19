@@ -6,8 +6,8 @@ export const veiculoController = {
     res.json(await veiculoService.listar(req.query))
   },
 
-  async buscar(req: Request, res: Response) {
-    res.json(await veiculoService.buscar(req.params.id))
+  async listarDisponiveis(_req: Request, res: Response) {
+    res.json(await veiculoService.listarDisponiveis())
   },
 
   async cadastrar(req: Request, res: Response) {

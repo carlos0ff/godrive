@@ -32,7 +32,24 @@ export const tratarErros: ErrorRequestHandler = (erro, _req, res, _next) => {
   }
 
   if (erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002') {
-    res.status(409).json({ erro: 'Já existe um registro com esses dados.' })
+    const campos = String(erro.meta?.target ?? '')
+    const mensagem = campos.includes('placa')
+      ? 'Já existe um veículo com esta placa.'
+      : campos.includes('email')
+        ? 'Já existe uma conta com este e-mail.'
+        : 'Já existe um registro com esses dados.'
+
+    res.status(409).json({ erro: mensagem })
+    return
+  }
+
+  if (erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2003') {
+    res.status(409).json({ erro: 'Registro relacionado não encontrado.' })
+    return
+  }
+
+  if (erro instanceof Prisma.PrismaClientInitializationError) {
+    res.status(503).json({ erro: 'Banco de dados indisponível. Verifique a conexão com o MySQL.' })
     return
   }
 
