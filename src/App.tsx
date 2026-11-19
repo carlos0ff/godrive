@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
 import { CadastroPage } from './pages/CadastroPage'
@@ -8,41 +8,20 @@ import { LoginPage } from './pages/LoginPage'
 import { NaoEncontradaPage } from './pages/NaoEncontradaPage'
 import { NovaLocacaoPage } from './pages/NovaLocacaoPage'
 import { NovoVeiculoPage } from './pages/NovoVeiculoPage'
+import { navegar, useLocalizacao } from './navegacao'
 import { useSessao } from './sessao'
 import './App.css'
 
-function useHash() {
-  const [hash, setHash] = useState(window.location.hash)
-
-  useEffect(() => {
-    function aoMudar() {
-      setHash(window.location.hash)
-      window.scrollTo({ top: 0 })
-    }
-
-    window.addEventListener('hashchange', aoMudar)
-    return () => window.removeEventListener('hashchange', aoMudar)
-  }, [])
-
-  const [caminho, consulta = ''] = hash.replace(/^#/, '').split('?')
-
-  return {
-    caminho: caminho.replace(/\/+$/, '') || '/',
-    consulta,
-    parametros: new URLSearchParams(consulta),
-  }
-}
-
 function Redirecionar({ para }: { para: string }) {
   useEffect(() => {
-    window.location.replace(`#${para}`)
+    navegar(para, { substituir: true })
   }, [para])
 
   return null
 }
 
 function App() {
-  const { caminho, consulta, parametros } = useHash()
+  const { caminho, consulta, parametros } = useLocalizacao()
   const { autenticado } = useSessao()
   const busca = parametros.get('busca') ?? ''
   const destino = `${caminho}${consulta ? `?${consulta}` : ''}`

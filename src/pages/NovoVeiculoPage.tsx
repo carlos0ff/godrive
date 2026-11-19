@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { api, mensagemDeErro } from '../api'
 import { IconeMais } from '../components/Icones'
+import { rota } from '../navegacao'
 
 const CATEGORIAS = ['Sedã', 'Hatch', 'SUV', 'Picape', 'Minivan', 'Utilitário']
 const COMBUSTIVEIS = ['Flex', 'Gasolina', 'Etanol', 'Diesel', 'Híbrido', 'Elétrico']
@@ -156,7 +157,7 @@ export function NovoVeiculoPage() {
           {cadastrado && (
             <p className="form-sucesso" role="status">
               <span>
-                {cadastrado} cadastrado com sucesso. <a href="#/veiculos">Ver no catálogo</a>
+                {cadastrado} cadastrado com sucesso. <a href={rota('/veiculos')}>Ver no catálogo</a>
               </span>
             </p>
           )}
@@ -382,7 +383,7 @@ export function NovoVeiculoPage() {
           </label>
 
           <div className="acoes-form">
-            <a href="#/veiculos" className="botao botao-secundario">
+            <a href={rota('/veiculos')} className="botao botao-secundario">
               Cancelar
             </a>
 

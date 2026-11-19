@@ -4,6 +4,7 @@ import { Carregando, EstadoErro, EstadoVazio } from '../components/Estados'
 import { IconeAgenda, IconeCarro } from '../components/Icones'
 import type { Locacao, Veiculo } from '../types'
 import { useRecurso } from '../useRecurso'
+import { rota } from '../navegacao'
 
 const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const dataHora = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
@@ -99,7 +100,7 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
               Locação de {confirmada.veiculo.marca} {confirmada.veiculo.modelo} registrada de{' '}
               {dataHora.format(new Date(confirmada.dataInicio))} a{' '}
               {dataHora.format(new Date(confirmada.dataPrevistaDevolucao))}. Valor calculado pelo sistema:{' '}
-              <strong>{moeda.format(confirmada.valorTotal)}</strong>. <a href="#/locacoes">Ver minhas locações</a>
+              <strong>{moeda.format(confirmada.valorTotal)}</strong>. <a href={rota('/locacoes')}>Ver minhas locações</a>
             </span>
           </p>
         )}
@@ -109,7 +110,7 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
             titulo="Nenhum veículo disponível"
             descricao="Toda a frota está locada no momento."
             acao={
-              <a href="#/veiculos" className="botao botao-secundario">
+              <a href={rota('/veiculos')} className="botao botao-secundario">
                 Ver catálogo
               </a>
             }
@@ -209,7 +210,7 @@ export function NovaLocacaoPage({ veiculoInicial }: { veiculoInicial: string }) 
             </div>
 
             <div className="acoes-form">
-              <a href="#/veiculos" className="botao botao-secundario">
+              <a href={rota('/veiculos')} className="botao botao-secundario">
                 Voltar ao catálogo
               </a>
 

@@ -3,6 +3,7 @@ import { api, mensagemDeErro } from '../api'
 import { IconeCadeado, IconeEmail, IconeSeta } from '../components/Icones'
 import { CampoAuth, LayoutAuth } from '../components/LayoutAuth'
 import { iniciarSessao } from '../sessao'
+import { navegar, rota } from '../navegacao'
 
 export function LoginPage({ volta }: { volta: string }) {
   const [email, setEmail] = useState('')
@@ -29,7 +30,7 @@ export function LoginPage({ volta }: { volta: string }) {
       const sessao = await api.login(email.trim(), senha)
 
       iniciarSessao(sessao, lembrar)
-      window.location.hash = volta.startsWith('/') ? volta : '/'
+      navegar(volta.startsWith('/') ? volta : '/')
     } catch (falha) {
       setErro(mensagemDeErro(falha))
       setEnviando(false)
@@ -93,12 +94,12 @@ export function LoginPage({ volta }: { volta: string }) {
       </form>
 
       <p className="login-cadastro">
-        Ainda não tem conta? <a href="#/cadastro">Criar conta</a>
+        Ainda não tem conta? <a href={rota('/cadastro')}>Criar conta</a>
       </p>
 
       <p className="login-termos">
-        Ao entrar, você concorda com nossos <a href="#/">Termos de Uso</a> e{' '}
-        <a href="#/">Política de Privacidade</a>.
+        Ao entrar, você concorda com nossos <a href={rota('/')}>Termos de Uso</a> e{' '}
+        <a href={rota('/')}>Política de Privacidade</a>.
       </p>
     </LayoutAuth>
   )

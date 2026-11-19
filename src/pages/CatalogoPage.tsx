@@ -12,6 +12,7 @@ import { caminhoPublico } from '../caminho'
 import type { Veiculo } from '../types'
 import { useSessao } from '../sessao'
 import { useRecurso } from '../useRecurso'
+import { navegar, rota } from '../navegacao'
 
 const POR_PAGINA = 6
 
@@ -29,7 +30,7 @@ const COMPARAR: Record<string, (a: Veiculo, b: Veiculo) => number> = {
 }
 
 function reservar(veiculo: Veiculo) {
-  window.location.hash = `/locacoes/nova?veiculo=${encodeURIComponent(veiculo.id)}`
+  navegar(`/locacoes/nova?veiculo=${encodeURIComponent(veiculo.id)}`)
 }
 
 interface Props {
@@ -301,7 +302,7 @@ export function CatalogoPage({ busca, mostrarHero }: Props) {
             titulo="Entre para ver os veículos"
             descricao="O catálogo e as reservas ficam disponíveis para usuários autenticados."
             acao={
-              <a href="#/login?volta=%2Fveiculos" className="botao botao-primario">
+              <a href={rota('/login?volta=%2Fveiculos')} className="botao botao-primario">
                 Entrar na conta
               </a>
             }

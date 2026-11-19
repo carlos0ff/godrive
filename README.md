@@ -152,7 +152,9 @@ godrive/
 │   ├── sessao.ts                    sessão do usuário (login/logout)
 │   ├── useRecurso.ts                hook de carregamento de dados da API
 │   ├── types.ts                     tipos compartilhados pela interface
-│   ├── App.tsx                      rotas da interface (hash) e proteção de páginas
+│   ├── App.tsx                      rotas da interface e proteção de páginas
+│   ├── navegacao.ts                 navegação por caminho (History API) e links internos
+│   ├── caminho.ts                   ajusta caminhos de imagens ao subcaminho publicado
 │   ├── components/                  Header, Footer, CartaoVeiculo, LayoutAuth, Estados, ícones
 │   └── pages/                       Login, Cadastro, Catálogo, NovoVeiculo, NovaLocacao, Locacoes
 ├── index.html
@@ -409,6 +411,8 @@ VITE_BASE=/projeto/demo/godrive/ VITE_API_URL=/projeto/demo/godrive/api npm run 
 ```
 
 A versão de demonstração está em **https://carlos0ff.dev/projeto/demo/godrive/** (nginx servindo o `dist/` e encaminhando `/api/` para a API em um serviço systemd).
+
+As páginas usam endereços normais (ex.: `/login`, `/locacoes/nova?veiculo=1`), sem `#`. Por isso o servidor precisa devolver o `index.html` para qualquer caminho que não seja um arquivo; no nginx: `try_files $uri /projeto/demo/godrive/index.html;`. O servidor de desenvolvimento do Vite já faz isso sozinho.
 
 ## Exemplos de utilização
 

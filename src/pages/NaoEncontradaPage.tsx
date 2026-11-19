@@ -1,4 +1,5 @@
 import { EstadoVazio } from '../components/Estados'
+import { rota } from '../navegacao'
 
 export function NaoEncontradaPage() {
   return (
@@ -7,7 +8,7 @@ export function NaoEncontradaPage() {
         titulo="Página não encontrada"
         descricao="O endereço acessado não existe ou foi movido."
         acao={
-          <a href="#/" className="botao botao-primario">
+          <a href={rota('/')} className="botao botao-primario">
             Ir para o início
           </a>
         }

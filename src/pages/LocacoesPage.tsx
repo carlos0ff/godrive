@@ -4,6 +4,7 @@ import { Carregando, EstadoErro, EstadoVazio } from '../components/Estados'
 import { IconeAgenda, IconeCheck } from '../components/Icones'
 import type { Locacao } from '../types'
 import { useRecurso } from '../useRecurso'
+import { rota } from '../navegacao'
 
 const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const dataHora = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
@@ -114,7 +115,7 @@ export function LocacoesPage() {
           <p className="secao-subtitulo">Acompanhe suas locações ativas, finalize as devoluções e consulte o histórico.</p>
         </div>
 
-        <a href="#/locacoes/nova" className="botao botao-primario">
+        <a href={rota('/locacoes/nova')} className="botao botao-primario">
           <IconeAgenda width={16} height={16} />
           Nova locação
         </a>
@@ -160,7 +161,7 @@ export function LocacoesPage() {
           titulo="Você ainda não tem locações"
           descricao="Escolha um veículo no catálogo para fazer a primeira reserva."
           acao={
-            <a href="#/veiculos" className="botao botao-primario">
+            <a href={rota('/veiculos')} className="botao botao-primario">
               Ver veículos
             </a>
           }

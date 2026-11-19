@@ -3,6 +3,7 @@ import { api, mensagemDeErro } from '../api'
 import { IconeCadeado, IconeEmail, IconeSeta, IconeUsuario } from '../components/Icones'
 import { CampoAuth, LayoutAuth } from '../components/LayoutAuth'
 import { iniciarSessao } from '../sessao'
+import { navegar, rota } from '../navegacao'
 
 export function CadastroPage() {
   const [nome, setNome] = useState('')
@@ -37,7 +38,7 @@ export function CadastroPage() {
     try {
       await api.cadastrar(nome.trim(), email.trim(), senha)
       iniciarSessao(await api.login(email.trim(), senha), false)
-      window.location.hash = '/veiculos'
+      navegar('/veiculos')
     } catch (falha) {
       setErro(mensagemDeErro(falha))
       setEnviando(false)
@@ -114,7 +115,7 @@ export function CadastroPage() {
               onChange={(evento) => setAceite(evento.target.checked)}
             />
             <span>
-              Li e aceito os <a href="#/cadastro">Termos de Uso</a>
+              Li e aceito os <a href={rota('/cadastro')}>Termos de Uso</a>
             </span>
           </label>
         </div>
@@ -126,7 +127,7 @@ export function CadastroPage() {
       </form>
 
       <p className="login-cadastro">
-        Já tem conta? <a href="#/login">Entrar</a>
+        Já tem conta? <a href={rota('/login')}>Entrar</a>
       </p>
     </LayoutAuth>
   )

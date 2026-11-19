@@ -1,3 +1,5 @@
+import { rota } from '../navegacao'
+
 export function Footer() {
   return (
     <footer className="rodape">
@@ -9,9 +11,9 @@ export function Footer() {
         </p>
 
         <nav className="rodape-links" aria-label="Links do rodapé">
-          <a href="#/veiculos">Ver veículos</a>
-          <a href="#/locacoes">Minhas locações</a>
-          <a href="#/veiculos">Fale conosco</a>
+          <a href={rota('/veiculos')}>Ver veículos</a>
+          <a href={rota('/locacoes')}>Minhas locações</a>
+          <a href={rota('/veiculos')}>Fale conosco</a>
         </nav>
       </div>
     </footer>

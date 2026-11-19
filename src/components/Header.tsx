@@ -12,6 +12,7 @@ import {
   IconeSeta,
   IconeUsuario,
 } from './Icones'
+import { navegar, rota } from '../navegacao'
 
 interface Props {
   caminho: string
@@ -66,7 +67,7 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
   function sair() {
     encerrarSessao()
     setContaAberta(false)
-    window.location.hash = '/'
+    navegar('/')
   }
 
   function pesquisar(evento: FormEvent<HTMLFormElement>) {
@@ -74,13 +75,13 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
 
     const termo = busca.trim()
 
-    window.location.hash = termo ? `/veiculos?busca=${encodeURIComponent(termo)}` : '/veiculos'
+    navegar(termo ? `/veiculos?busca=${encodeURIComponent(termo)}` : '/veiculos')
   }
 
   return (
     <header className="topbar">
       <div className="container nav">
-        <a className="brand" href="#/" aria-label="goDrive, início">
+        <a className="brand" href={rota('/')} aria-label="goDrive, início">
           {logoFalhou ? (
             <span className="brand-fallback">
               <span className="brand-mark">
@@ -122,7 +123,7 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
           {LINKS.map((link) => (
             <a
               key={link.para}
-              href={`#${link.para}`}
+              href={rota(link.para)}
               className={`nav-link${caminho === link.para ? ' ativo' : ''}`}
               aria-current={caminho === link.para ? 'page' : undefined}
             >
@@ -133,7 +134,7 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
 
         <div className="nav-actions">
           {!autenticado && (
-            <a href="#/login" className="botao botao-primario">
+            <a href={rota('/login')} className="botao botao-primario">
               <IconeEntrar width={16} height={16} />
               Entrar
             </a>
@@ -169,12 +170,12 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
                     <span>{usuario.email}</span>
                   </p>
 
-                  <a href="#/locacoes" role="menuitem">
+                  <a href={rota('/locacoes')} role="menuitem">
                     <IconeAgenda />
                     <span>Minhas locações</span>
                   </a>
 
-                  <a href="#/veiculos/novo" role="menuitem">
+                  <a href={rota('/veiculos/novo')} role="menuitem">
                     <IconeMais />
                     <span>Cadastrar veículo</span>
                   </a>

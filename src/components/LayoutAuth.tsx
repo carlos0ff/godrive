@@ -2,6 +2,7 @@ import { useState, type InputHTMLAttributes, type ReactNode } from 'react'
 import logoGoDrive from '../assets/godrive.png'
 import { caminhoPublico } from '../caminho'
 import { IconeOlho, IconeOlhoFechado } from './Icones'
+import { rota } from '../navegacao'
 
 interface LayoutProps {
   eyebrow: string
@@ -25,7 +26,7 @@ export function LayoutAuth({
   return (
     <div className="login">
       <aside className="login-painel">
-        <a className="login-logo" href="#/" aria-label="goDrive, voltar ao início">
+        <a className="login-logo" href={rota('/')} aria-label="goDrive, voltar ao início">
           <img src={logoGoDrive} alt="goDrive" width={190} height={40} />
         </a>
 
@@ -39,7 +40,7 @@ export function LayoutAuth({
       </aside>
 
       <main className="login-conteudo">
-        <a className="login-voltar" href="#/">
+        <a className="login-voltar" href={rota('/')}>
           ← Voltar ao site
         </a>
 
