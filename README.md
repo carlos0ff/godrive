@@ -155,7 +155,6 @@ godrive/
 │   ├── App.tsx                      rotas da interface (hash) e proteção de páginas
 │   ├── components/                  Header, Footer, CartaoVeiculo, LayoutAuth, Estados, ícones
 │   └── pages/                       Login, Cadastro, Catálogo, NovoVeiculo, NovaLocacao, Locacoes
-├── docs/                            guia dos manuscritos e roteiro de apresentação
 ├── index.html
 ├── vite.config.ts                   proxy de /api para o backend
 └── package.json
@@ -476,7 +475,7 @@ São 14 testes (Vitest + Supertest) executados no banco `TEST_DATABASE_URL`, que
 
 ## Roteiro de demonstração
 
-Um roteiro detalhado, com o que mostrar em cada passo e onde está cada trecho do código, está em [`docs/apresentacao.md`](docs/apresentacao.md). Resumo:
+Passos sugeridos para a apresentação:
 
 1. Subir backend e frontend e abrir o Swagger.
 2. `POST /auth/register` e `POST /auth/login` → copiar o token e clicar em Authorize.
@@ -502,4 +501,4 @@ Um roteiro detalhado, com o que mostrar em cada passo e onde está cada trecho d
 | Conteúdo | API REST, Prisma, Autenticação e React |
 | Modalidade | Grupo de até 4 alunos |
 | Entrega coletiva | Este repositório (backend, frontend, `schema.prisma`, migrations, README e `.env.example`) |
-| Entrega individual | DER, diagrama de sequência e respostas às cinco questões, manuscritos em A4 branco — guia de apoio em [`docs/manuscrito.md`](docs/manuscrito.md) |
+| Entrega individual | DER, diagrama de sequência e respostas às cinco questões, manuscritos em A4 branco, entregues fisicamente ao professor |

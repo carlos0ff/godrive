@@ -27,3 +27,6 @@ dist-ssr
 
 # Cópia antiga do código, fora do repositório
 .src-anterior
+
+# Material de apoio pessoal (não versionado)
+docs/
