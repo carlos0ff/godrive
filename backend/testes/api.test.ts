@@ -15,9 +15,9 @@ function daqui(ms: number): string {
   return new Date(Date.now() + ms).toISOString()
 }
 
-async function criarUsuario(email: string, senha = 'segredo1') {
+async function criarUsuario(email: string, senha = 'segredo1', papel: 'ADMIN' | 'CLIENTE' = 'CLIENTE') {
   return prisma.usuario.create({
-    data: { nome: 'Usuário Teste', email, senhaHash: await bcrypt.hash(senha, 4) },
+    data: { nome: 'Usuário Teste', email, senhaHash: await bcrypt.hash(senha, 4), papel },
   })
 }
 
@@ -27,8 +27,8 @@ async function entrar(email: string, senha = 'segredo1'): Promise<string> {
   return resposta.body.token
 }
 
-async function usuarioComToken(email: string) {
-  const usuario = await criarUsuario(email)
+async function usuarioComToken(email: string, papel: 'ADMIN' | 'CLIENTE' = 'CLIENTE') {
+  const usuario = await criarUsuario(email, 'segredo1', papel)
 
   return { usuario, token: await entrar(email) }
 }
@@ -71,7 +71,8 @@ describe('Autenticação', () => {
 
     expect(login.status).toBe(200)
     expect(login.body.token).toEqual(expect.any(String))
-    expect(Object.keys(login.body.usuario).sort()).toEqual(['criadoEm', 'email', 'id', 'nome'])
+    expect(Object.keys(login.body.usuario).sort()).toEqual(['criadoEm', 'email', 'id', 'nome', 'papel'])
+    expect(login.body.usuario.papel).toBe('CLIENTE')
 
     const salvo = await prisma.usuario.findUniqueOrThrow({ where: { email: 'ana@teste.com' } })
 
@@ -116,7 +117,7 @@ describe('Autenticação', () => {
 
 describe('Veículos', () => {
   it('cadastra veículo validando placa única e diária positiva', async () => {
-    const { token } = await usuarioComToken('carlos@teste.com')
+    const { token } = await usuarioComToken('carlos@teste.com', 'ADMIN')
     const novo = { marca: 'Toyota', modelo: 'Yaris', ano: 2024, categoria: 'Hatch', placa: 'abc1d23', valorDiaria: 150 }
 
     const criado = await request(app).post('/api/veiculos').set('Authorization', `Bearer ${token}`).send(novo)
@@ -138,6 +139,32 @@ describe('Veículos', () => {
     expect(repetido.status).toBe(409)
     expect(diariaZero.status).toBe(400)
     expect(semMarca.status).toBe(400)
+  })
+
+  it('só administradores cadastram veículos; o cadastro público sempre cria cliente', async () => {
+    const novo = { marca: 'Fiat', modelo: 'Mobi', ano: 2024, categoria: 'Hatch', placa: 'MOB-1A23', valorDiaria: 70 }
+    const cliente = await usuarioComToken('cliente@teste.com')
+
+    const recusado = await request(app).post('/api/veiculos').set('Authorization', `Bearer ${cliente.token}`).send(novo)
+
+    expect(recusado.status).toBe(403)
+    expect(await prisma.veiculo.count()).toBe(0)
+
+    const cadastro = await request(app)
+      .post('/api/auth/register')
+      .send({ nome: 'Espertinho', email: 'esperto@teste.com', senha: 'segredo1', papel: 'ADMIN' })
+    const token = await entrar('esperto@teste.com')
+    const tentativa = await request(app).post('/api/veiculos').set('Authorization', `Bearer ${token}`).send(novo)
+
+    expect(cadastro.body.usuario.papel).toBe('CLIENTE')
+    expect(tentativa.status).toBe(403)
+
+    const admin = await usuarioComToken('admin@teste.com', 'ADMIN')
+    const aceito = await request(app).post('/api/veiculos').set('Authorization', `Bearer ${admin.token}`).send(novo)
+    const listaDoCliente = await request(app).get('/api/veiculos').set('Authorization', `Bearer ${cliente.token}`)
+
+    expect(aceito.status).toBe(201)
+    expect(listaDoCliente.body.map((v: { placa: string }) => v.placa)).toEqual(['MOB-1A23'])
   })
 
   it('lista todos com a disponibilidade e consulta apenas os disponíveis', async () => {

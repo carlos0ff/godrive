@@ -17,8 +17,9 @@ const veiculos = [
 ]
 
 const usuarios = [
-  { nome: 'Cliente Demonstração', email: 'cliente@godrive.com', senha: 'cliente123' },
-  { nome: 'Maria Oliveira', email: 'maria@godrive.com', senha: 'maria123' },
+  { nome: 'Administrador GoDrive', email: 'admin@godrive.com', senha: 'admin123', papel: 'ADMIN' as const },
+  { nome: 'Cliente Demonstração', email: 'cliente@godrive.com', senha: 'cliente123', papel: 'CLIENTE' as const },
+  { nome: 'Maria Oliveira', email: 'maria@godrive.com', senha: 'maria123', papel: 'CLIENTE' as const },
 ]
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000
@@ -71,7 +72,11 @@ async function main() {
   for (const { senha, ...usuario } of usuarios) {
     const senhaHash = await bcrypt.hash(senha, 10)
 
-    await prisma.usuario.upsert({ where: { email: usuario.email }, update: {}, create: { ...usuario, senhaHash } })
+    await prisma.usuario.upsert({
+      where: { email: usuario.email },
+      update: { papel: usuario.papel },
+      create: { ...usuario, senhaHash },
+    })
   }
 
   for (const veiculo of veiculos) {

@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Papel {
+  ADMIN
+  CLIENTE
+}
+
 enum StatusLocacao {
   ATIVA
   FINALIZADA
@@ -17,6 +22,7 @@ model Usuario {
   nome         String    @db.VarChar(120)
   email        String    @unique @db.VarChar(160)
   senhaHash    String    @db.VarChar(100)
+  papel        Papel     @default(CLIENTE)
   criadoEm     DateTime  @default(now())
   atualizadoEm DateTime  @updatedAt
   locacoes     Locacao[]

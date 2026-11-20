@@ -54,7 +54,7 @@ export const authService = {
 
     if (!usuario || !senhaConfere) throw new ErroApp(401, 'E-mail ou senha incorretos.')
 
-    return { token: gerarToken(usuario.id), usuario: formatarUsuario(usuario) }
+    return { token: gerarToken(usuario), usuario: formatarUsuario(usuario) }
   },
 
   async perfil(usuarioId: number) {

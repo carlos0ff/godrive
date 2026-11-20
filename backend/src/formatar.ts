@@ -5,6 +5,7 @@ export function formatarUsuario(usuario: Usuario) {
     id: usuario.id,
     nome: usuario.nome,
     email: usuario.email,
+    papel: usuario.papel,
     criadoEm: usuario.criadoEm,
   }
 }

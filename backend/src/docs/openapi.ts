@@ -23,7 +23,7 @@ export const documentoOpenApi = {
     title: 'API goDrive',
     version: '2.0.0',
     description:
-      'API REST do sistema de locação de veículos. Faça login em POST /auth/login, copie o token e clique em Authorize.',
+      'API REST do sistema de locação de veículos. Faça login em POST /auth/login, copie o token e clique em Authorize. Para cadastrar veículos, entre como administrador (admin@godrive.com / admin123).',
   },
   servers: [{ url: config.caminhoPublicoApi }],
   tags: [{ name: 'Autenticação' }, { name: 'Veículos' }, { name: 'Locações' }],
@@ -37,6 +37,7 @@ export const documentoOpenApi = {
           id: { type: 'integer' },
           nome: { type: 'string' },
           email: { type: 'string' },
+          papel: { type: 'string', enum: ['ADMIN', 'CLIENTE'] },
           criadoEm: { type: 'string', format: 'date-time' },
         },
       },
@@ -96,7 +97,7 @@ export const documentoOpenApi = {
     '/auth/register': {
       post: {
         tags: ['Autenticação'],
-        summary: 'Cadastra um usuário',
+        summary: 'Cadastra um usuário (sempre com papel CLIENTE)',
         requestBody: corpo(
           {
             nome: { type: 'string', example: 'Ana Souza' },
@@ -162,13 +163,14 @@ export const documentoOpenApi = {
       },
       post: {
         tags: ['Veículos'],
-        summary: 'Cadastra um veículo (placa única e diária positiva)',
+        summary: 'Cadastra um veículo (somente ADMIN; placa única e diária positiva)',
         security: protegida,
         requestBody: { required: true, ...json(ref('NovoVeiculo')) },
         responses: {
           201: { description: 'Veículo cadastrado', ...json(ref('Veiculo')) },
           400: erro('Dados inválidos'),
           401: naoAutenticado,
+          403: erro('Usuário não é administrador'),
           409: erro('Placa já cadastrada'),
         },
       },

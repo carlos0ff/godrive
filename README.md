@@ -80,7 +80,7 @@ Demonstrar, na prática, uma aplicação Full Stack com:
 | Área | Funcionalidade |
 | --- | --- |
 | Usuários | Cadastro (nome, e-mail, senha), login com e-mail e senha, identificação do usuário logado no cabeçalho e logout |
-| Veículos | Cadastro com validação de placa única e diária positiva; listagem com disponibilidade; consulta apenas dos disponíveis; busca, categoria, ordenação e paginação na interface |
+| Veículos | Cadastro **somente por administradores**, com validação de placa única e diária positiva; listagem com disponibilidade; consulta apenas dos disponíveis; busca, categoria, ordenação e paginação na interface |
 | Locações | Escolha do veículo disponível, data de início e data prevista de devolução; valor calculado no backend; listagem das locações ativas; histórico das finalizadas; finalização com registro da devolução |
 | Interface | Mensagens de sucesso e erro vindas da API, rotas protegidas no frontend e atualização da tela após cada operação |
 | Extras | Documentação Swagger em `/api/docs`, testes automatizados da API, cabeçalhos de segurança (helmet) e limite de tentativas de login |
@@ -176,6 +176,7 @@ erDiagram
     String nome
     String email UK
     String senhaHash
+    Papel papel "ADMIN | CLIENTE"
     DateTime criadoEm "data de cadastro"
     DateTime atualizadoEm
   }
@@ -215,7 +216,7 @@ erDiagram
 
 | Requisito do enunciado | Campo no schema |
 | --- | --- |
-| Usuario: identificador, nome, e-mail único, senha como hash, data de cadastro | `id`, `nome`, `email @unique`, `senhaHash`, `criadoEm` |
+| Usuario: identificador, nome, e-mail único, senha como hash, data de cadastro | `id`, `nome`, `email @unique`, `senhaHash`, `criadoEm` (e `papel`: ADMIN ou CLIENTE) |
 | Veiculo: identificador, marca, modelo, placa única, ano, valor da diária, disponibilidade | `id`, `marca`, `modelo`, `placa @unique`, `ano`, `valorDiaria`, `disponivel` |
 | Locacao: identificador, usuário, veículo, início, devolução prevista, devolução efetiva (opcional), valor total, status | `id`, `usuarioId`, `veiculoId`, `dataInicio`, `dataPrevistaDevolucao`, `dataDevolucao?`, `valorTotal`, `status` |
 
@@ -239,7 +240,7 @@ Base: `http://localhost:3333/api`. Todas as respostas são JSON; erros vêm no f
 | POST | `/auth/register` | — | Cadastra usuário (`nome`, `email`, `senha`) | 201 | 400, 409 |
 | POST | `/auth/login` | — | Verifica credenciais e retorna `{ token, usuario }` | 200 | 400, 401, 429 |
 | GET | `/auth/me` | ✔ | Dados do usuário identificado pelo token | 200 | 401 |
-| POST | `/veiculos` | ✔ | Cadastra veículo | 201 | 400, 401, 409 |
+| POST | `/veiculos` | ✔ admin | Cadastra veículo (somente papel ADMIN) | 201 | 400, 401, 403, 409 |
 | GET | `/veiculos` | ✔ | Lista veículos com a disponibilidade (filtros opcionais `?disponivel=true\|false`, `?busca=`, `?categoria=`) | 200 | 401 |
 | GET | `/veiculos/disponiveis` | ✔ | Lista apenas os veículos disponíveis | 200 | 401 |
 | POST | `/locacoes` | ✔ | Registra locação (`veiculoId`, `dataInicio`, `dataPrevistaDevolucao`) | 201 | 400, 401, 404, 409 |
@@ -247,19 +248,20 @@ Base: `http://localhost:3333/api`. Todas as respostas são JSON; erros vêm no f
 | PATCH | `/locacoes/:id/finalizar` | ✔ | Finaliza a locação, registra a devolução e libera o veículo | 200 | 400, 401, 404, 409 |
 | GET | `/saude` | — | Verificação simples de funcionamento | 200 | — |
 
-Significado dos códigos: **400** dados inválidos, **401** sem token/token inválido/credenciais erradas, **404** recurso inexistente (ou locação de outro usuário), **409** conflito (e-mail/placa duplicados, veículo indisponível, locação já finalizada), **429** muitas tentativas de login.
+Significado dos códigos: **400** dados inválidos, **401** sem token/token inválido/credenciais erradas, **403** usuário sem permissão (cliente tentando cadastrar veículo), **404** recurso inexistente (ou locação de outro usuário), **409** conflito (e-mail/placa duplicados, veículo indisponível, locação já finalizada), **429** muitas tentativas de login.
 
 A documentação interativa (Swagger) fica em **http://localhost:3333/api/docs**: faça login, clique em **Authorize**, cole o token e execute as rotas pelo navegador.
 
 ## Autenticação e segurança
 
 1. **Cadastro** (`authService.cadastrar`): valida os dados, verifica se o e-mail já existe e grava `bcrypt.hash(senha, 10)` em `senhaHash`. A senha em texto puro nunca é salva.
-2. **Login** (`authService.login`): busca o usuário pelo e-mail e compara a senha com `bcrypt.compare`. Se estiver certa, `gerarToken` assina um JWT com `sub = id do usuário` e validade `JWT_EXPIRES_IN`. A mensagem de erro é a mesma para e-mail inexistente e senha errada.
+2. **Login** (`authService.login`): busca o usuário pelo e-mail e compara a senha com `bcrypt.compare`. Se estiver certa, `gerarToken` assina um JWT com `sub = id do usuário`, o `papel` (ADMIN ou CLIENTE) e validade `JWT_EXPIRES_IN`. A mensagem de erro é a mesma para e-mail inexistente e senha errada.
 3. **Rotas protegidas**: o middleware `autenticar` lê `Authorization: Bearer <token>`, verifica a assinatura com `jwt.verify` e coloca o id em `req.usuarioId`. Sem token ou com token inválido/expirado, responde **401**.
 4. **Identificação pelo token**: os controllers usam sempre `req.usuarioId`. Um `usuarioId` enviado no corpo da requisição é ignorado.
 5. **Locações de terceiros**: `listar` filtra por `usuarioId`, e `finalizar` busca com `findFirst({ where: { id, usuarioId } })`. A locação de outra pessoa responde **404**, sem revelar que existe.
 6. **Sem dados sensíveis nas respostas**: `formatarUsuario` monta o JSON só com `id`, `nome`, `email` e `criadoEm`; o `senhaHash` nunca sai da API.
-7. **Proteções adicionais**: helmet (cabeçalhos HTTP), CORS restrito à origem do frontend e limite de 20 tentativas de login a cada 15 minutos por IP.
+7. **Papéis**: todo cadastro feito por `POST /auth/register` cria um **CLIENTE** (um campo `papel` enviado no corpo é ignorado). O middleware `exigirAdmin`, aplicado só em `POST /veiculos`, responde **403** se o papel do token não for **ADMIN**. Clientes listam veículos e fazem locações; só o administrador cadastra veículos.
+8. **Proteções adicionais**: helmet (cabeçalhos HTTP), CORS restrito à origem do frontend e limite de 20 tentativas de login a cada 15 minutos por IP.
 
 No frontend, o token fica em `sessionStorage` (ou `localStorage` com "Lembrar-me"), é enviado por `src/api.ts` em todas as requisições e é descartado no logout ou quando a API responde 401.
 
@@ -267,7 +269,7 @@ No frontend, o token fica em `sessionStorage` (ou `localStorage` com "Lembrar-me
 
 | # | Regra | Onde está |
 | --- | --- | --- |
-| 1 | Só usuários autenticados gerenciam veículos e locações | `rotasVeiculos.use(autenticar)` e `rotasLocacoes.use(autenticar)` |
+| 1 | Só usuários autenticados gerenciam veículos e locações; cadastrar veículo exige papel ADMIN | `rotasVeiculos.use(autenticar)`, `rotasLocacoes.use(autenticar)` e `exigirAdmin` em `POST /veiculos` |
 | 2 | Um veículo não pode ter duas locações ativas; ao iniciar, fica indisponível | `locacaoService.registrar`: `updateMany({ where: { id, disponivel: true }, data: { disponivel: false } })` + `count` de locações `ATIVA`, dentro de `prisma.$transaction` |
 | 3 | A locação fica ativa até a devolução; a devolução encerra e libera o veículo | `locacaoService.finalizar`: `status: 'FINALIZADA'`, `dataDevolucao: new Date()` e `disponivel: true` na mesma transação |
 | 4 | Não é permitido finalizar uma locação já finalizada | `updateMany({ where: { id, status: 'ATIVA' } })` → se `count === 0`, **409** |
@@ -288,7 +290,7 @@ No frontend, o token fica em `sessionStorage` (ou `localStorage` com "Lembrar-me
 - **Tolerância de 5 minutos** na data de início, para que uma locação "para agora" não seja recusada pelo tempo entre preencher e enviar o formulário.
 - **Valor da diária copiado para a locação**, para o histórico não mudar se o preço do veículo for alterado.
 - **Erros genéricos no login**: a mesma mensagem para e-mail inexistente e senha errada, para não revelar quais e-mails têm conta.
-- **Sem papéis de usuário**: o enunciado pede apenas usuários autenticados, então qualquer usuário logado pode cadastrar veículos.
+- **Papéis ADMIN e CLIENTE**: o enunciado exige autenticação para gerenciar veículos; o grupo decidiu ir além e permitir o cadastro de veículos apenas ao administrador, porque um cliente da locadora não deve alterar a frota. O papel viaja no JWT, então uma mudança de papel vale a partir do próximo login.
 - **Limitações conhecidas**: não há edição/exclusão (fora do escopo pedido); não há recuperação de senha nem confirmação de e-mail; o valor é o contratado (o atraso na devolução não gera cobrança extra, porque o enunciado calcula sobre a duração contratada); é possível finalizar uma locação antes da data de início, o que funciona como encerramento antecipado com o valor contratado.
 
 ## Pré-requisitos
@@ -380,8 +382,9 @@ O seed cria:
 
 | Dado | Detalhes |
 | --- | --- |
-| Usuário `cliente@godrive.com` / senha `cliente123` | Possui uma locação **finalizada** (Fiat Argo) e uma **ativa** (Fiat Pulse) |
-| Usuário `maria@godrive.com` / senha `maria123` | Sem locações (útil para mostrar o bloqueio de acesso a locações de outro usuário) |
+| Administrador `admin@godrive.com` / senha `admin123` | Único que pode cadastrar veículos |
+| Cliente `cliente@godrive.com` / senha `cliente123` | Possui uma locação **finalizada** (Fiat Argo) e uma **ativa** (Fiat Pulse) |
+| Cliente `maria@godrive.com` / senha `maria123` | Sem locações (útil para mostrar o bloqueio de acesso a locações de outro usuário) |
 | 10 veículos | Hatch, sedã, SUV, picape e minivan; o Fiat Pulse fica indisponível por causa da locação ativa |
 
 ## Inicialização do backend
@@ -448,7 +451,7 @@ curl -X POST http://localhost:3333/api/auth/login \
 curl http://localhost:3333/api/veiculos/disponiveis -H "Authorization: Bearer TOKEN"
 ```
 
-**Cadastrar veículo**
+**Cadastrar veículo** (use o token de `admin@godrive.com`; com token de cliente a resposta é **403**)
 
 ```bash
 curl -X POST http://localhost:3333/api/veiculos \
@@ -486,7 +489,7 @@ cd backend
 npm test
 ```
 
-São 14 testes (Vitest + Supertest) executados no banco `TEST_DATABASE_URL`, que é limpo antes de cada teste. Eles cobrem: cadastro e login sem expor o hash, e-mail duplicado, credenciais erradas, rotas sem token ou com token inválido, cadastro de veículo com placa duplicada e diária inválida, listagem e veículos disponíveis, cálculo das diárias com frações, registro de locação, validação de datas, veículo inexistente e indisponível, **5 locações simultâneas do mesmo veículo** (apenas 1 aceita), acesso a locações de outro usuário, finalização, histórico, **duas finalizações simultâneas** e identificador inválido.
+São 15 testes (Vitest + Supertest) executados no banco `TEST_DATABASE_URL`, que é limpo antes de cada teste. Eles cobrem: cadastro e login sem expor o hash, e-mail duplicado, credenciais erradas, rotas sem token ou com token inválido, cadastro de veículo com placa duplicada e diária inválida, **cliente recebendo 403 ao cadastrar veículo** (mesmo enviando `papel: ADMIN` no cadastro), listagem e veículos disponíveis, cálculo das diárias com frações, registro de locação, validação de datas, veículo inexistente e indisponível, **5 locações simultâneas do mesmo veículo** (apenas 1 aceita), acesso a locações de outro usuário, finalização, histórico, **duas finalizações simultâneas** e identificador inválido.
 
 ## Roteiro de demonstração
 
@@ -494,7 +497,7 @@ Passos sugeridos para a apresentação:
 
 1. Subir backend e frontend e abrir o Swagger.
 2. `POST /auth/register` e `POST /auth/login` → copiar o token e clicar em Authorize.
-3. `GET /veiculos` e `GET /veiculos/disponiveis` (o Pulse aparece indisponível).
+3. `GET /veiculos` e `GET /veiculos/disponiveis` (o Pulse aparece indisponível); `POST /veiculos` como cliente → **403**, e como `admin@godrive.com` → 201.
 4. `POST /locacoes` → mostrar o `valorTotal` calculado e tentar alugar o mesmo carro (409).
 5. `GET /locacoes` e `PATCH /locacoes/:id/finalizar` → finalizar de novo (409).
 6. Repetir o fluxo na interface React: login, catálogo com filtro, nova locação, minhas locações e finalização.

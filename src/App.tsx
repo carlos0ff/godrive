@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
+import { AcessoRestritoPage } from './pages/AcessoRestritoPage'
 import { CadastroPage } from './pages/CadastroPage'
 import { CatalogoPage } from './pages/CatalogoPage'
 import { LocacoesPage } from './pages/LocacoesPage'
@@ -22,7 +23,7 @@ function Redirecionar({ para }: { para: string }) {
 
 function App() {
   const { caminho, consulta, parametros } = useLocalizacao()
-  const { autenticado } = useSessao()
+  const { autenticado, ehAdmin } = useSessao()
   const busca = parametros.get('busca') ?? ''
   const destino = `${caminho}${consulta ? `?${consulta}` : ''}`
 
@@ -38,7 +39,7 @@ function App() {
       pagina = <CatalogoPage busca={busca} mostrarHero={caminho === '/'} />
       break
     case '/veiculos/novo':
-      pagina = exigirLogin(<NovoVeiculoPage />)
+      pagina = exigirLogin(ehAdmin ? <NovoVeiculoPage /> : <AcessoRestritoPage />)
       break
     case '/locacoes':
       pagina = exigirLogin(<LocacoesPage />)

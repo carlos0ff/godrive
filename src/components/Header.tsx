@@ -22,7 +22,7 @@ interface Props {
 const LINKS = [
   { para: '/veiculos', rotulo: 'Veículos' },
   { para: '/locacoes', rotulo: 'Minhas locações' },
-  { para: '/veiculos/novo', rotulo: 'Cadastrar veículo' },
+  { para: '/veiculos/novo', rotulo: 'Cadastrar veículo', somenteAdmin: true },
 ]
 
 export function Header({ caminho, busca: buscaDaUrl }: Props) {
@@ -32,7 +32,7 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
   const [contaAberta, setContaAberta] = useState(false)
   const [caminhoAnterior, setCaminhoAnterior] = useState(caminho)
   const conta = useRef<HTMLDivElement>(null)
-  const { usuario, autenticado } = useSessao()
+  const { usuario, autenticado, ehAdmin } = useSessao()
 
   if (buscaDaUrl !== buscaAnterior) {
     setBuscaAnterior(buscaDaUrl)
@@ -120,7 +120,7 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
         </form>
 
         <nav className="nav-links" aria-label="Navegação principal">
-          {LINKS.map((link) => (
+          {LINKS.filter((link) => !link.somenteAdmin || ehAdmin).map((link) => (
             <a
               key={link.para}
               href={rota(link.para)}
@@ -168,6 +168,7 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
                   <p className="account-menu-head">
                     <strong>{usuario.nome}</strong>
                     <span>{usuario.email}</span>
+                    {ehAdmin && <em className="tag-admin">Administrador</em>}
                   </p>
 
                   <a href={rota('/locacoes')} role="menuitem">
@@ -175,10 +176,12 @@ export function Header({ caminho, busca: buscaDaUrl }: Props) {
                     <span>Minhas locações</span>
                   </a>
 
-                  <a href={rota('/veiculos/novo')} role="menuitem">
-                    <IconeMais />
-                    <span>Cadastrar veículo</span>
-                  </a>
+                  {ehAdmin && (
+                    <a href={rota('/veiculos/novo')} role="menuitem">
+                      <IconeMais />
+                      <span>Cadastrar veículo</span>
+                    </a>
+                  )}
 
                   <button type="button" role="menuitem" onClick={sair}>
                     <IconeSair />
